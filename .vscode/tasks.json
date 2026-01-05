@@ -1,0 +1,15 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Push to GAS and GitHub",
+            "type": "shell",
+            "command": "npx @google/clasp push && git add . && git commit -m \"update\" && git push origin main",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": []
+        }
+    ]
+}

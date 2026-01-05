@@ -1,0 +1,7 @@
+{
+  "name": "QuickSwap - 友誼匯率計算器",
+  "description": "一個專為朋友間多幣別（VND, USD, CNY, TWD）換匯設計的計算工具。支援即時匯率轉換與「友情報價」價差分析，讓換錢不再傷感情。",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}

@@ -1,0 +1,425 @@
+<script type="text/babel">
+    const { useState, useEffect, useMemo, useCallback } = React;
+    const {
+        RefreshCw, TrendingUp, ArrowRightLeft,
+        AlertCircle, ExternalLink, Calculator, History,
+        TrendingDown, PlusCircle, Trash2, X, ChevronRight,
+        DollarSign, Settings2
+    } = LucideReact;
+
+    // --- Components ---
+
+    const CurrencyCard = ({ code, amount, onAmountChange, onEditClick, isActive }) => {
+        const config = CURRENCY_CONFIG[code];
+        const formatNumber = (num) => {
+            return num.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+        };
+
+        return (
+            <div
+                className={`p-4 rounded-3xl transition-all h-full flex flex-col justify-between ${isActive ? 'neu-inset ring-2 ring-indigo-400/20' : 'neu-flat hover:scale-[1.02]'}`}
+                onClick={() => onAmountChange(amount)}
+            >
+                <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3 overflow-hidden">
+                        <span className="text-2xl shrink-0 drop-shadow-sm">{config.flag}</span>
+                        <div className="overflow-hidden">
+                            <h3 className="font-bold text-slate-700 leading-tight text-sm truncate">{config.code}</h3>
+                            <p className="text-[10px] text-slate-500 truncate">{config.name}</p>
+                        </div>
+                    </div>
+                    <button
+                        onClick={(e) => { e.stopPropagation(); onEditClick(); }}
+                        className="p-2 neu-flat-sm rounded-xl text-slate-400 hover:text-indigo-600 transition-colors"
+                    >
+                        <Settings2 size={14} />
+                    </button>
+                </div>
+
+                <div className="relative">
+                    <div className="flex items-baseline gap-1 mb-1">
+                        <span className="text-xs font-bold text-indigo-500">{config.symbol}</span>
+                        <input
+                            type="number"
+                            inputMode="decimal"
+                            value={amount === 0 ? "" : amount.toFixed(2).replace(/\.00$/, '')}
+                            onChange={(e) => onAmountChange(parseFloat(e.target.value) || 0)}
+                            onClick={(e) => e.stopPropagation()}
+                            className="w-full text-xl font-black bg-transparent border-none outline-none focus:ring-0 p-0 text-slate-800"
+                            placeholder="0"
+                        />
+                    </div>
+                    <div className="text-[10px] text-slate-400 font-medium italic truncate">
+                        ≈ {formatNumber(amount)}
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    // --- Main App ---
+
+    const App = () => {
+        const [activeTab, setActiveTab] = useState('exchange');
+        const [rates, setRates] = useState({
+            USD: 1, TWD: 32.5, CNY: 7.24, VND: 25400, HKD: 7.8, JPY: 155, EUR: 0.92, GBP: 0.78,
+            lastUpdated: "正在載入..."
+        });
+        const [insight, setInsight] = useState(null);
+        const [baseAmount, setBaseAmount] = useState(100);
+        const [activeCurrency, setActiveCurrency] = useState('USD');
+        const [isLoading, setIsLoading] = useState(true);
+        const [historyFilter, setHistoryFilter] = useState('ALL');
+        const [transactions, setTransactions] = useState([]);
+
+        // UI State
+        const [visibleCurrencies, setVisibleCurrencies] = useState(['USD', 'TWD', 'CNY', 'VND']);
+        const [isEditingIdx, setIsEditingIdx] = useState(null);
+
+        // Comparison Tool State
+        const [offerFrom, setOfferFrom] = useState('TWD');
+        const [offerTo, setOfferTo] = useState('VND');
+        const [offerAmountFrom, setOfferAmountFrom] = useState(1000);
+        const [offerAmountTo, setOfferAmountTo] = useState(780000);
+
+        useEffect(() => {
+            updateRates();
+            loadTransactions();
+        }, []);
+
+        const updateRates = () => {
+            setIsLoading(true);
+            google.script.run
+                .withSuccessHandler((data) => {
+                    setRates(data.rates);
+                    setInsight(data.insight);
+                    setIsLoading(false);
+                })
+                .withFailureHandler((err) => {
+                    console.error(err);
+                    setIsLoading(false);
+                })
+                .fetchLiveRates();
+        };
+
+        const loadTransactions = () => {
+            google.script.run
+                .withSuccessHandler((data) => {
+                    setTransactions(data);
+                })
+                .getTransactions();
+        };
+
+        const handleAmountChange = (code, value) => {
+            setActiveCurrency(code);
+            const rate = rates[code];
+            setBaseAmount(value / rate);
+        };
+
+        const getAmount = (code) => (baseAmount * rates[code]);
+
+        const saveTransaction = () => {
+            const marketRate = rates[offerTo] / rates[offerFrom];
+            const friendRate = offerAmountTo / offerAmountFrom;
+            const diffPercent = ((friendRate - marketRate) / marketRate) * 100;
+
+            const newTx = {
+                id: Date.now().toString(),
+                date: new Date().toLocaleString('zh-TW'),
+                fromCode: offerFrom,
+                toCode: offerTo,
+                fromAmount: offerAmountFrom,
+                toAmount: offerAmountTo,
+                marketRate: marketRate,
+                diffPercent: diffPercent,
+                note: ""
+            };
+
+            google.script.run
+                .withSuccessHandler(() => {
+                    setTransactions([newTx, ...transactions]);
+                    alert("已儲存紀錄到 Google Sheets！");
+                })
+                .saveTransaction(newTx);
+        };
+
+        const deleteTransaction = (id) => {
+            if (confirm("確定要刪除這筆紀錄嗎？(將同步從 Google Sheets 刪除)")) {
+                google.script.run
+                    .withSuccessHandler(() => {
+                        setTransactions(transactions.filter(t => t.id !== id));
+                    })
+                    .deleteTransaction(id);
+            }
+        };
+
+        const stats = useMemo(() => {
+            let totalTWD = 0;
+            transactions.forEach(tx => {
+                const marketToAmount = tx.fromAmount * tx.marketRate;
+                const profitInTarget = tx.toAmount - marketToAmount;
+                const currentRateTWD = rates['TWD'];
+                const currentRateTarget = rates[tx.toCode];
+                const profitInTWD = profitInTarget * (currentRateTWD / currentRateTarget);
+                totalTWD += profitInTWD;
+            });
+            return { totalTWD };
+        }, [transactions, rates]);
+
+        const filteredTransactions = useMemo(() => {
+            if (historyFilter === 'ALL') return transactions;
+            return transactions.filter(t => t.fromCode === historyFilter || t.toCode === historyFilter);
+        }, [transactions, historyFilter]);
+
+        const currentMarketRate = rates[offerTo] / rates[offerFrom];
+        const currentFriendRate = offerAmountTo / offerAmountFrom;
+        const currentDiffPercent = ((currentFriendRate - currentMarketRate) / currentMarketRate) * 100;
+        const isBetterForMe = currentDiffPercent > 0;
+
+        return (
+            <div className="app-container px-4 max-w-lg mx-auto overflow-x-hidden">
+                {/* Header */}
+                <div className="flex items-center justify-between mb-8">
+                    <div className="flex items-center gap-3">
+                        <div className="p-3 neu-flat rounded-2xl">
+                            <ArrowRightLeft className="text-indigo-600" size={20} />
+                        </div>
+                        <div>
+                            <h1 className="text-xl font-black text-slate-800 tracking-tight">QuickSwap</h1>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">GAS Pro Edition</p>
+                        </div>
+                    </div>
+                    <button
+                        onClick={updateRates}
+                        className="p-4 neu-flat rounded-2xl active:scale-95 transition-all"
+                    >
+                        <RefreshCw className={`${isLoading ? 'animate-spin text-indigo-500' : 'text-slate-500'}`} size={20} />
+                    </button>
+                </div>
+
+                <main>
+                    {/* TAB 1: EXCHANGE */}
+                    {activeTab === 'exchange' && (
+                        <div className="space-y-8 animate-fadeIn">
+                            <div className="grid grid-cols-2 gap-5">
+                                {visibleCurrencies.map((code, idx) => (
+                                    <CurrencyCard
+                                        key={`${code}-${idx}`}
+                                        code={code}
+                                        amount={getAmount(code)}
+                                        onAmountChange={(val) => handleAmountChange(code, val)}
+                                        onEditClick={() => setIsEditingIdx(idx)}
+                                        isActive={activeCurrency === code}
+                                    />
+                                ))}
+                            </div>
+
+                            {insight && (
+                                <div className="neu-inset p-5 rounded-3xl space-y-3">
+                                    <div className="flex items-center gap-2">
+                                        <TrendingUp className="text-indigo-500" size={16} />
+                                        <span className="text-xs font-bold text-indigo-900/60 uppercase">市場觀察 (Gemini 2.0)</span>
+                                    </div>
+                                    <p className="text-sm font-medium text-slate-700 leading-relaxed">{insight.summary}</p>
+                                    {insight.sources && insight.sources.length > 0 && (
+                                        <div className="flex flex-wrap gap-2">
+                                            {insight.sources.slice(0, 2).map((s, i) => (
+                                                <a key={i} href={s.uri} target="_blank" rel="noreferrer" className="text-[10px] text-indigo-500 font-bold flex items-center gap-1 opacity-70">
+                                                    來源 {i + 1}: {s.title.substring(0, 15)}... <ExternalLink size={10} />
+                                                </a>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            <div className="text-center">
+                                <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">
+                                    最後更新：{rates.lastUpdated}
+                                </span>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* TAB 2: COMPARE */}
+                    {activeTab === 'compare' && (
+                        <div className="space-y-6 animate-fadeIn">
+                            <div className="neu-flat p-6 rounded-[2.5rem] space-y-6">
+                                <div className="space-y-5">
+                                    <div className="space-y-3">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">給出幣別</label>
+                                        <div className="flex gap-3">
+                                            <div className="neu-inset rounded-2xl px-3 py-2 flex items-center">
+                                                <select value={offerFrom} onChange={(e) => setOfferFrom(e.target.value)} className="bg-transparent border-none font-black text-sm focus:ring-0">
+                                                    {Object.keys(CURRENCY_CONFIG).map(c => <option key={c} value={c}>{c}</option>)}
+                                                </select>
+                                            </div>
+                                            <div className="flex-1 neu-inset rounded-2xl px-4 py-3">
+                                                <input type="number" value={offerAmountFrom} onChange={(e) => setOfferAmountFrom(parseFloat(e.target.value) || 0)} className="w-full bg-transparent border-none text-lg font-black focus:ring-0" />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex justify-center">
+                                        <div className="p-3 neu-flat-sm rounded-full"><ArrowRightLeft className="text-slate-400 rotate-90" size={16} /></div>
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">得到幣別</label>
+                                        <div className="flex gap-3">
+                                            <div className="neu-inset rounded-2xl px-3 py-2 flex items-center">
+                                                <select value={offerTo} onChange={(e) => setOfferTo(e.target.value)} className="bg-transparent border-none font-black text-sm focus:ring-0">
+                                                    {Object.keys(CURRENCY_CONFIG).map(c => <option key={c} value={c}>{c}</option>)}
+                                                </select>
+                                            </div>
+                                            <div className="flex-1 neu-inset rounded-2xl px-4 py-3">
+                                                <input type="number" value={offerAmountTo} onChange={(e) => setOfferAmountTo(parseFloat(e.target.value) || 0)} className="w-full bg-transparent border-none text-lg font-black focus:ring-0" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="neu-inset p-6 rounded-[2rem] flex flex-col items-center gap-3 transition-all">
+                                    <div className="flex items-center gap-2">
+                                        {isBetterForMe ? <TrendingUp className="text-emerald-500" size={20} /> : <TrendingDown className="text-rose-500" size={20} />}
+                                        <span className={`font-black text-sm uppercase ${isBetterForMe ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                            {isBetterForMe ? '較市場划算' : '較市場昂貴'}
+                                        </span>
+                                    </div>
+                                    <div className={`text-5xl font-black ${isBetterForMe ? 'text-emerald-500' : 'text-rose-500'} neu-text-shadow`}>
+                                        {Math.abs(currentDiffPercent).toFixed(2)}%
+                                    </div>
+                                    <div className="text-[10px] font-bold text-slate-400 text-center uppercase leading-relaxed">
+                                        市場匯率 1 : {currentMarketRate.toFixed(2)} <br />
+                                        友情報價 1 : {currentFriendRate.toFixed(2)}
+                                    </div>
+                                </div>
+
+                                <button
+                                    onClick={saveTransaction}
+                                    className="w-full py-5 neu-flat rounded-[1.8rem] text-indigo-600 font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 active:scale-95 transition-all"
+                                >
+                                    <PlusCircle size={20} /> 儲存至 Google Sheet
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* TAB 3: HISTORY */}
+                    {activeTab === 'history' && (
+                        <div className="space-y-6 animate-fadeIn">
+                            <div className="neu-flat p-6 rounded-[2rem] flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-3 neu-inset rounded-2xl">
+                                        <DollarSign className="text-indigo-500" size={20} />
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">總盈虧累計 (TWD)</p>
+                                        <h3 className={`text-2xl font-black ${stats.totalTWD >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                                            {stats.totalTWD >= 0 ? '+' : ''}{stats.totalTWD.toFixed(2)}
+                                        </h3>
+                                    </div>
+                                </div>
+                                <TrendingUp className={`w-8 h-8 opacity-20 ${stats.totalTWD >= 0 ? 'text-emerald-500' : 'text-rose-500'}`} />
+                            </div>
+
+                            <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+                                {['ALL', ...Object.keys(CURRENCY_CONFIG)].map(c => (
+                                    <button
+                                        key={c}
+                                        onClick={() => setHistoryFilter(c)}
+                                        className={`px-4 py-2 rounded-xl text-[10px] font-black transition-all shrink-0 ${historyFilter === c ? 'neu-inset text-indigo-600' : 'neu-flat-sm text-slate-400'}`}
+                                    >
+                                        {c === 'ALL' ? '全部' : c}
+                                    </button>
+                                ))}
+                            </div>
+
+                            {filteredTransactions.length === 0 ? (
+                                <div className="py-20 neu-inset rounded-[2rem] text-center text-slate-300 font-bold italic">尚無交易紀錄</div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {filteredTransactions.map(tx => (
+                                        <div key={tx.id} className="neu-flat p-5 rounded-3xl flex items-center justify-between group">
+                                            <div className="flex items-center gap-4">
+                                                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${tx.diffPercent > 0 ? 'neu-inset text-emerald-500' : 'neu-inset text-rose-500'}`}>
+                                                    {tx.diffPercent > 0 ? <TrendingUp size={20} /> : <TrendingDown size={20} />}
+                                                </div>
+                                                <div>
+                                                    <div className="flex items-center gap-2 font-black text-slate-700 text-sm">
+                                                        {tx.fromAmount.toFixed(0)} {tx.fromCode} <ChevronRight className="text-slate-300" size={12} /> {tx.toAmount.toFixed(0)} {tx.toCode}
+                                                    </div>
+                                                    <div className="text-[10px] text-slate-400 font-bold uppercase mt-1">
+                                                        {tx.date.split(' ')[0]} • 價差 {Math.abs(tx.diffPercent).toFixed(2)}%
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <button onClick={() => deleteTransaction(tx.id)} className="p-3 neu-flat-sm rounded-xl text-slate-300 hover:text-rose-500 transition-all">
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </main>
+
+                {/* Navigation TabBar */}
+                <nav className="fixed bottom-6 left-6 right-6 h-20 neu-flat rounded-[2rem] flex justify-around items-center px-4 z-50">
+                    <button onClick={() => setActiveTab('exchange')} className={`flex flex-col items-center gap-1 transition-all p-3 rounded-2xl ${activeTab === 'exchange' ? 'neu-inset text-indigo-600 scale-105' : 'text-slate-400'}`}>
+                        <Calculator size={20} />
+                        <span className="text-[9px] font-black uppercase tracking-tighter">換算</span>
+                    </button>
+                    <button onClick={() => setActiveTab('compare')} className={`flex flex-col items-center gap-1 transition-all p-3 rounded-2xl ${activeTab === 'compare' ? 'neu-inset text-indigo-600 scale-105' : 'text-slate-400'}`}>
+                        <TrendingUp size={20} />
+                        <span className="text-[9px] font-black uppercase tracking-tighter">分析</span>
+                    </button>
+                    <button onClick={() => setActiveTab('history')} className={`flex flex-col items-center gap-1 transition-all p-3 rounded-2xl ${activeTab === 'history' ? 'neu-inset text-indigo-600 scale-105' : 'text-slate-400'}`}>
+                        <History size={20} />
+                        <span className="text-[9px] font-black uppercase tracking-tighter">歷史</span>
+                    </button>
+                </nav>
+
+                {/* Edit Currency Modal */}
+                {isEditingIdx !== null && (
+                    <div className="fixed inset-0 bg-slate-900/10 backdrop-blur-md z-[100] flex items-center justify-center p-8">
+                        <div className="neu-flat rounded-[3rem] w-full max-w-xs p-8 animate-fadeIn">
+                            <div className="flex items-center justify-between mb-8">
+                                <h3 className="font-black text-slate-700 uppercase tracking-widest text-sm">切換幣別</h3>
+                                <button onClick={() => setIsEditingIdx(null)} className="p-2 neu-flat-sm rounded-full active:scale-90 transition-all"><X size={16} /></button>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                {Object.keys(CURRENCY_CONFIG).map(code => {
+                                    const config = CURRENCY_CONFIG[code];
+                                    const isAlreadyVisible = visibleCurrencies.includes(code);
+                                    return (
+                                        <button
+                                            key={code}
+                                            onClick={() => {
+                                                const newVisible = [...visibleCurrencies];
+                                                newVisible[isEditingIdx] = code;
+                                                setVisibleCurrencies(newVisible);
+                                                setIsEditingIdx(null);
+                                            }}
+                                            className={`p-4 rounded-[1.5rem] flex flex-col items-center gap-2 transition-all ${isAlreadyVisible ? 'neu-inset opacity-40' : 'neu-flat-sm active:neu-inset'}`}
+                                        >
+                                            <span className="text-2xl drop-shadow-sm">{config.flag}</span>
+                                            <span className="text-[10px] font-black text-slate-600">{config.code}</span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+
+</script>
+<!-- Babel to handle JSX -->
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
