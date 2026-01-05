@@ -1,8 +1,16 @@
 <script type="text/babel">
+    /**
+     * QuickSwap Frontend Logic
+     */
     const { useState, useEffect, useMemo, useCallback } = React;
 
-    // Safely extract icons from LucideReact or lucide global
-    const Lucide = window.LucideReact || window.lucide || {};
+    // Safely extract icons from LucideReact or Lucide global
+    // In React 18 / Lucide 0.263 UMD, it's usually window.LucideReact
+    const Lucide = window.LucideReact || window.Lucide || {};
+
+    if (Object.keys(Lucide).length === 0) {
+        console.warn("LucideReact library not found or empty. Using fallbacks.");
+    }
 
     // Fallback component if icon is missing
     const FallbackIcon = ({ size = 20, className = "" }) => (
@@ -12,25 +20,26 @@
             strokeLinejoin="round" className={className}
         >
             <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
         </svg>
     );
 
-    const {
-        RefreshCw = FallbackIcon,
-        TrendingUp = FallbackIcon,
-        ArrowRightLeft = FallbackIcon,
-        AlertCircle = FallbackIcon,
-        ExternalLink = FallbackIcon,
-        Calculator = FallbackIcon,
-        History = FallbackIcon,
-        TrendingDown = FallbackIcon,
-        PlusCircle = FallbackIcon,
-        Trash2 = FallbackIcon,
-        X = FallbackIcon,
-        ChevronRight = FallbackIcon,
-        DollarSign = FallbackIcon,
-        Settings2 = FallbackIcon
-    } = Lucide;
+    // Map icons with fallbacks
+    const RefreshCw = Lucide.RefreshCw || FallbackIcon;
+    const TrendingUp = Lucide.TrendingUp || FallbackIcon;
+    const ArrowRightLeft = Lucide.ArrowRightLeft || FallbackIcon;
+    const AlertCircle = Lucide.AlertCircle || FallbackIcon;
+    const ExternalLink = Lucide.ExternalLink || FallbackIcon;
+    const Calculator = Lucide.Calculator || FallbackIcon;
+    const History = Lucide.History || FallbackIcon;
+    const TrendingDown = Lucide.TrendingDown || FallbackIcon;
+    const PlusCircle = Lucide.PlusCircle || FallbackIcon;
+    const Trash2 = Lucide.Trash2 || FallbackIcon;
+    const X = Lucide.X || FallbackIcon;
+    const ChevronRight = Lucide.ChevronRight || FallbackIcon;
+    const DollarSign = Lucide.DollarSign || FallbackIcon;
+    const Settings2 = Lucide.Settings2 || FallbackIcon;
 
     // --- Components ---
 
@@ -138,10 +147,15 @@
         const handleAmountChange = (code, value) => {
             setActiveCurrency(code);
             const rate = rates[code];
-            setBaseAmount(value / rate);
+            if (rate) {
+                setBaseAmount(value / rate);
+            }
         };
 
-        const getAmount = (code) => (baseAmount * rates[code]);
+        const getAmount = (code) => {
+            const rate = rates[code] || 1;
+            return baseAmount * rate;
+        };
 
         const saveTransaction = () => {
             const marketRate = rates[offerTo] / rates[offerFrom];
@@ -183,8 +197,8 @@
             transactions.forEach(tx => {
                 const marketToAmount = tx.fromAmount * tx.marketRate;
                 const profitInTarget = tx.toAmount - marketToAmount;
-                const currentRateTWD = rates['TWD'];
-                const currentRateTarget = rates[tx.toCode];
+                const currentRateTWD = rates['TWD'] || 32.5;
+                const currentRateTarget = rates[tx.toCode] || 1;
                 const profitInTWD = profitInTarget * (currentRateTWD / currentRateTarget);
                 totalTWD += profitInTWD;
             });
@@ -196,7 +210,7 @@
             return transactions.filter(t => t.fromCode === historyFilter || t.toCode === historyFilter);
         }, [transactions, historyFilter]);
 
-        const currentMarketRate = rates[offerTo] / rates[offerFrom];
+        const currentMarketRate = (rates[offerTo] || 1) / (rates[offerFrom] || 1);
         const currentFriendRate = offerAmountTo / offerAmountFrom;
         const currentDiffPercent = ((currentFriendRate - currentMarketRate) / currentMarketRate) * 100;
         const isBetterForMe = currentDiffPercent > 0;
@@ -442,9 +456,16 @@
         );
     };
 
-    const root = ReactDOM.createRoot(document.getElementById('root'));
-    root.render(<App />);
-
+    /**
+     * Initialize App with error catching
+     */
+    try {
+        const rootElement = document.getElementById('root');
+        if (rootElement) {
+            const root = ReactDOM.createRoot(rootElement);
+            root.render(<App />);
+        }
+    } catch (e) {
+        console.error("React render failed:", e);
+    }
 </script>
-<!-- Babel to handle JSX -->
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
