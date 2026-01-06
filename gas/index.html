@@ -13,16 +13,21 @@
         rel="stylesheet">
     <?!= include('css'); ?>
 
-    <!-- External Libraries -->
-    <script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
-    <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+    <!-- React Development Libraries for better error reporting -->
+    <script src="https://unpkg.com/react@18.2.0/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.development.js"></script>
 
     <!-- Babel standalone for JSX -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
 
 <body>
-    <div id="root"></div>
+    <div id="root">
+        <div
+            style="font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; color: #666;">
+            載入中... (React 正在初始中)
+        </div>
+    </div>
 
     <?!= include('constants'); ?>
     <?!= include('js'); ?>
