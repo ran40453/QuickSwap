@@ -42,10 +42,10 @@ function fetchLiveRates() {
   const payload = {
     contents: [{
       parts: [{
-        text: `Find the latest real-time exchange rates for 1 USD to TWD, CNY, VND, HKD, JPY, EUR, GBP. 
+        text: `Find the latest real-time exchange rates for 1 USD to TWD, CNY, VND, HKD, JPY, EUR, GBP, KRW. 
                Return only a JSON object matching this structure:
                {
-                 "rates": { "USD": 1, "TWD": number, "CNY": number, "VND": number, "HKD": number, "JPY": number, "EUR": number, "GBP": number },
+                 "rates": { "USD": 1, "TWD": number, "CNY": number, "VND": number, "HKD": number, "JPY": number, "EUR": number, "GBP": number, "KRW": number },
                  "summary": "Short 1-sentence market trend comment in Traditional Chinese"
                }`
       }]
@@ -104,7 +104,7 @@ function fetchLiveRates() {
 
 function getFallbackRates() {
   return {
-    USD: 1, TWD: 32.5, CNY: 7.24, VND: 25400, HKD: 7.8, JPY: 155, EUR: 0.92, GBP: 0.78,
+    USD: 1, TWD: 32.5, CNY: 7.24, VND: 25400, HKD: 7.8, KRW: 1350, JPY: 155, EUR: 0.92, GBP: 0.78,
     lastUpdated: "備用數據 (API 連線失敗)"
   };
 }

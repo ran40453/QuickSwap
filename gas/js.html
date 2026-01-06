@@ -1,14 +1,8 @@
 <script type="text/babel">
     /**
-     * QuickSwap Frontend Logic (Debugging Version)
+     * QuickSwap Frontend Logic (Refined Version)
      */
-    console.log("QuickSwap JS Starting...");
-
-    const { useState, useEffect, useMemo, useCallback } = React || {};
-
-    if (!React) {
-        console.error("CRITICAL: React is not defined!");
-    }
+    const { useState, useEffect, useMemo, useCallback } = React;
 
     // --- Inline SVG Icons ---
     const Icon = ({ children, size = 20, className = "" }) => (
@@ -30,8 +24,8 @@
     const ArrowRightLeft = (props) => (
         <Icon {...props}><path d="m16 3 4 4-4 4" /><path d="M20 7H4" /><path d="m8 21-4-4 4-4" /><path d="M4 17h16" /></Icon>
     );
-    const AlertCircle = (props) => (
-        <Icon {...props}><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></Icon>
+    const Search = (props) => (
+        <Icon {...props}><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></Icon>
     );
     const ExternalLink = (props) => (
         <Icon {...props}><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" /></Icon>
@@ -79,35 +73,35 @@
                 onClick={() => onAmountChange(amount)}
             >
                 <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-3 overflow-hidden">
-                        <span className="text-2xl shrink-0 drop-shadow-sm">{config.flag}</span>
+                    <div className="flex items-center gap-2 overflow-hidden">
+                        <span className="text-xl shrink-0 drop-shadow-sm">{config.flag}</span>
                         <div className="overflow-hidden">
-                            <h3 className="font-bold text-slate-700 leading-tight text-sm truncate">{config.code}</h3>
-                            <p className="text-[10px] text-slate-500 truncate">{config.name}</p>
+                            <h3 className="font-bold text-slate-700 leading-tight text-xs truncate">{config.code}</h3>
+                            <p className="text-[9px] text-slate-500 truncate">{config.name}</p>
                         </div>
                     </div>
                     <button
                         onClick={(e) => { e.stopPropagation(); onEditClick(); }}
-                        className="p-2 neu-flat-sm rounded-xl text-slate-400 hover:text-indigo-600 transition-colors"
+                        className="p-1.5 neu-flat-sm rounded-lg text-slate-400 hover:text-indigo-600 transition-colors"
                     >
-                        <Settings2 size={14} />
+                        <Settings2 size={12} />
                     </button>
                 </div>
 
                 <div className="relative">
-                    <div className="flex items-baseline gap-1 mb-1">
-                        <span className="text-xs font-bold text-indigo-500">{config.symbol}</span>
+                    <div className="flex items-baseline gap-1 mb-0.5">
+                        <span className="text-[10px] font-bold text-indigo-500">{config.symbol}</span>
                         <input
                             type="number"
                             inputMode="decimal"
                             value={amount === 0 ? "" : (amount?.toFixed ? amount.toFixed(2).replace(/\.00$/, '') : "0")}
                             onChange={(e) => onAmountChange(parseFloat(e.target.value) || 0)}
                             onClick={(e) => e.stopPropagation()}
-                            className="w-full text-xl font-black bg-transparent border-none outline-none focus:ring-0 p-0 text-slate-800"
+                            className="w-full text-lg font-black bg-transparent border-none outline-none focus:ring-0 p-0 text-slate-800"
                             placeholder="0"
                         />
                     </div>
-                    <div className="text-[10px] text-slate-400 font-medium italic truncate">
+                    <div className="text-[9px] text-slate-400 font-medium italic truncate">
                         {formatNumber(amount)}
                     </div>
                 </div>
@@ -120,10 +114,9 @@
     const App = () => {
         const [activeTab, setActiveTab] = useState('exchange');
         const [rates, setRates] = useState({
-            USD: 1, TWD: 32.5, CNY: 7.24, VND: 25400, HKD: 7.8, JPY: 155, EUR: 0.92, GBP: 0.78,
+            USD: 1, TWD: 32.5, CNY: 7.24, VND: 25400, HKD: 7.8, KRW: 1350, JPY: 155, EUR: 0.92, GBP: 0.78,
             lastUpdated: "正在載入..."
         });
-        const [insight, setInsight] = useState(null);
         const [baseAmount, setBaseAmount] = useState(100);
         const [activeCurrency, setActiveCurrency] = useState('USD');
         const [isLoading, setIsLoading] = useState(true);
@@ -131,8 +124,9 @@
         const [transactions, setTransactions] = useState([]);
 
         // UI State
-        const [visibleCurrencies, setVisibleCurrencies] = useState(['USD', 'TWD', 'CNY', 'VND']);
+        const [visibleCurrencies, setVisibleCurrencies] = useState(['USD', 'TWD', 'CNY', 'VND', 'HKD', 'KRW']);
         const [isEditingIdx, setIsEditingIdx] = useState(null);
+        const [searchTerm, setSearchTerm] = useState('');
 
         // Comparison Tool State
         const [offerFrom, setOfferFrom] = useState('TWD');
@@ -141,7 +135,6 @@
         const [offerAmountTo, setOfferAmountTo] = useState(780000);
 
         useEffect(() => {
-            console.log("App mounted. Updating rates...");
             updateRates();
             loadTransactions();
         }, []);
@@ -149,16 +142,13 @@
         const updateRates = () => {
             setIsLoading(true);
             if (typeof google === 'undefined') {
-                console.warn("google.script.run is not available (Local UI Test?)");
                 setIsLoading(false);
                 return;
             }
             google.script.run
                 .withSuccessHandler((data) => {
-                    console.log("Rates fetched:", data);
                     if (data && data.rates) {
                         setRates(data.rates);
-                        setInsight(data.insight);
                     }
                     setIsLoading(false);
                 })
@@ -173,7 +163,6 @@
             if (typeof google === 'undefined') return;
             google.script.run
                 .withSuccessHandler((data) => {
-                    console.log("Transactions loaded:", data);
                     if (data) setTransactions(data);
                 })
                 .getTransactions();
@@ -252,10 +241,27 @@
             return transactions.filter(t => t.fromCode === historyFilter || t.toCode === historyFilter);
         }, [transactions, historyFilter]);
 
+        const filteredCurrenciesModal = useMemo(() => {
+            const all = Object.keys(CURRENCY_CONFIG);
+            if (!searchTerm) return all;
+            return all.filter(code =>
+                code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                CURRENCY_CONFIG[code].name.includes(searchTerm)
+            );
+        }, [searchTerm]);
+
         const currentMarketRate = (rates[offerTo] || 1) / (rates[offerFrom] || 1);
         const currentFriendRate = offerAmountTo / offerAmountFrom;
         const currentDiffPercent = ((currentFriendRate - currentMarketRate) / currentMarketRate) * 100;
         const isBetterForMe = currentDiffPercent > 0;
+
+        // Header Date Logic
+        const todayStr = useMemo(() => {
+            const now = new Date();
+            const options = { day: '2-digit', month: 'short', year: '2-digit' };
+            const formatted = now.toLocaleDateString('en-GB', options).replace(/ /g, '');
+            return formatted + " Powered by Cody";
+        }, []);
 
         return (
             <div className="app-container px-4 max-w-lg mx-auto overflow-x-hidden">
@@ -267,7 +273,7 @@
                         </div>
                         <div>
                             <h1 className="text-xl font-black text-slate-800 tracking-tight">QuickSwap</h1>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">GAS Debug Edition</p>
+                            <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest">{todayStr}</p>
                         </div>
                     </div>
                     <button
@@ -295,26 +301,7 @@
                                 ))}
                             </div>
 
-                            {insight && (
-                                <div className="neu-inset p-5 rounded-3xl space-y-3">
-                                    <div className="flex items-center gap-2">
-                                        <TrendingUp className="text-indigo-500" size={16} />
-                                        <span className="text-xs font-bold text-indigo-900/60 uppercase">市場觀察 (Gemini 2.0)</span>
-                                    </div>
-                                    <p className="text-sm font-medium text-slate-700 leading-relaxed">{insight.summary}</p>
-                                    {insight.sources && insight.sources.length > 0 && (
-                                        <div className="flex flex-wrap gap-2">
-                                            {insight.sources.slice(0, 2).map((s, i) => (
-                                                <a key={i} href={s.uri} target="_blank" rel="noreferrer" className="text-[10px] text-indigo-500 font-bold flex items-center gap-1 opacity-70">
-                                                    來源 {i + 1}: {s.title?.substring(0, 15)}... <ExternalLink size={10} />
-                                                </a>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-
-                            <div className="text-center">
+                            <div className="text-center pt-8">
                                 <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">
                                     最後更新：{rates.lastUpdated}
                                 </span>
@@ -369,10 +356,6 @@
                                     </div>
                                     <div className={`text-5xl font-black ${isBetterForMe ? 'text-emerald-500' : 'text-rose-500'} neu-text-shadow`}>
                                         {Math.abs(currentDiffPercent).toFixed(2)}%
-                                    </div>
-                                    <div className="text-[10px] font-bold text-slate-400 text-center uppercase leading-relaxed">
-                                        市場匯率 1 : {currentMarketRate.toFixed(2)} <br />
-                                        友情報價 1 : {currentFriendRate.toFixed(2)}
                                     </div>
                                 </div>
 
@@ -464,16 +447,31 @@
 
                 {/* Edit Currency Modal */}
                 {isEditingIdx !== null && (
-                    <div className="fixed inset-0 bg-slate-900/10 backdrop-blur-md z-[100] flex items-center justify-center p-8">
-                        <div className="neu-flat rounded-[3rem] w-full max-w-xs p-8 animate-fadeIn">
-                            <div className="flex items-center justify-between mb-8">
+                    <div className="fixed inset-0 bg-slate-900/10 backdrop-blur-md z-[100] flex items-center justify-center p-6">
+                        <div className="neu-flat rounded-[3rem] w-full max-w-sm h-[80vh] flex flex-col p-8 animate-fadeIn">
+                            <div className="flex items-center justify-between mb-6">
                                 <h3 className="font-black text-slate-700 uppercase tracking-widest text-sm">切換幣別</h3>
-                                <button onClick={() => setIsEditingIdx(null)} className="p-2 neu-flat-sm rounded-full active:scale-90 transition-all outline-none"><X size={16} /></button>
+                                <button onClick={() => { setIsEditingIdx(null); setSearchTerm(''); }} className="p-2 neu-flat-sm rounded-full active:scale-90 transition-all outline-none"><X size={16} /></button>
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                {CURRENCY_CONFIG && Object.keys(CURRENCY_CONFIG).map(code => {
+
+                            {/* Search Bar */}
+                            <div className="mb-6 relative">
+                                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                                    <Search size={16} />
+                                </div>
+                                <input
+                                    type="text"
+                                    placeholder="快速查找幣別..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="w-full pl-12 pr-4 py-4 neu-inset rounded-2xl bg-transparent border-none font-bold text-sm focus:ring-2 focus:ring-indigo-400/20 outline-none"
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4 overflow-y-auto pr-2 no-scrollbar flex-1">
+                                {filteredCurrenciesModal.map(code => {
                                     const config = CURRENCY_CONFIG[code];
-                                    const isAlreadyVisible = visibleCurrencies.includes(code);
+                                    const isVisibleInList = visibleCurrencies.includes(code);
                                     return (
                                         <button
                                             key={code}
@@ -482,11 +480,14 @@
                                                 newVisible[isEditingIdx] = code;
                                                 setVisibleCurrencies(newVisible);
                                                 setIsEditingIdx(null);
+                                                setSearchTerm('');
                                             }}
-                                            className={`p-4 rounded-[1.5rem] flex flex-col items-center gap-2 transition-all ${isAlreadyVisible ? 'neu-inset opacity-40' : 'neu-flat-sm active:neu-inset'} outline-none`}
+                                            disabled={isVisibleInList}
+                                            className={`p-4 rounded-[1.5rem] flex flex-col items-center gap-2 transition-all ${isVisibleInList ? 'neu-inset opacity-40 cursor-not-allowed' : 'neu-flat-sm active:neu-inset hover:bg-slate-50'}`}
                                         >
                                             <span className="text-2xl drop-shadow-sm">{config.flag}</span>
                                             <span className="text-[10px] font-black text-slate-600">{config.code}</span>
+                                            <span className="text-[9px] font-medium text-slate-400">{config.name}</span>
                                         </button>
                                     );
                                 })}
@@ -499,27 +500,19 @@
     };
 
     /**
-     * Initialize App with strict null checks
+     * Initialize App
      */
     const mountApp = () => {
-        console.log("Attempting to mount React app...");
-        if (typeof ReactDOM === 'undefined') {
-            console.error("ReactDOM is NOT available!");
-            setTimeout(mountApp, 200);
-            return;
-        }
         const rootElement = document.getElementById('root');
         if (rootElement) {
             try {
                 const root = ReactDOM.createRoot(rootElement);
                 root.render(<App />);
-                console.log("React render command sent.");
             } catch (e) {
                 console.error("Mounting Error:", e);
             }
         } else {
-            console.warn("#root element not found yet, retrying...");
-            setTimeout(mountApp, 200);
+            setTimeout(mountApp, 100);
         }
     };
 
