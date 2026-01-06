@@ -478,7 +478,7 @@
                                     最後更新：{rates.lastUpdated}
                                 </span>
                                 <span className="text-[8px] font-bold text-slate-200 uppercase tracking-tighter block">
-                                    Ver: 1.0.9-Hotfix
+                                    Ver: 1.1.0-UIRefined
                                 </span>
                             </div>
                         </div>
@@ -574,7 +574,7 @@
                                 </button>
                             </div>
 
-                            <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+                            <div className="flex gap-2 overflow-x-auto py-3 no-scrollbar -mx-2 px-2">
                                 {['ALL', ...Object.keys(CURRENCY_CONFIG)].map(c => (
                                     <button
                                         key={c}
@@ -615,10 +615,12 @@
                                                 </div>
 
                                                 <div className="flex items-center justify-between px-2">
-                                                    <div className="flex flex-col items-center gap-1">
+                                                    <div className="flex flex-col items-center">
                                                         <span className="text-2xl drop-shadow-sm mb-1">{fromConfig.flag}</span>
-                                                        <span className="text-sm font-black text-slate-700">{formatNumber(tx.fromAmount)}</span>
-                                                        <span className="text-[9px] font-bold text-slate-400 uppercase">{tx.fromCode}</span>
+                                                        <div className="flex items-baseline gap-1">
+                                                            <span className="text-sm font-black text-slate-700">{formatNumber(tx.fromAmount)}</span>
+                                                            <span className="text-[9px] font-bold text-slate-400 uppercase">{tx.fromCode}</span>
+                                                        </div>
                                                     </div>
 
                                                     <div className="flex flex-col items-center justify-center flex-1">
@@ -632,10 +634,12 @@
                                                         </span>
                                                     </div>
 
-                                                    <div className="flex flex-col items-center gap-1">
+                                                    <div className="flex flex-col items-center">
                                                         <span className="text-2xl drop-shadow-sm mb-1">{toConfig.flag}</span>
-                                                        <span className="text-sm font-black text-slate-700">{formatNumber(tx.toAmount)}</span>
-                                                        <span className="text-[9px] font-bold text-slate-400 uppercase">{tx.toCode}</span>
+                                                        <div className="flex items-baseline gap-1">
+                                                            <span className="text-sm font-black text-slate-700">{formatNumber(tx.toAmount)}</span>
+                                                            <span className="text-[9px] font-bold text-slate-400 uppercase">{tx.toCode}</span>
+                                                        </div>
                                                     </div>
                                                 </div>
 
