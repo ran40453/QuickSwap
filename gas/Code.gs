@@ -34,7 +34,7 @@ function logSpreadsheetAccess(targetId, action, userAgent) {
  */
 function doGet() {
   const template = HtmlService.createTemplateFromFile('index');
-  template.version = "v1.1.1-ShadowFix"; // Version stamp for debugging
+  template.version = "v1.1.2-InputPlus"; // Version stamp for debugging
   return template.evaluate()
     .setTitle('QuickSwap - 匯率快速計算及記錄器')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no')
