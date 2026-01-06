@@ -122,23 +122,39 @@ function getTransactions(spreadsheetId) {
     if (data.length <= 1) return []; // Only headers or empty
 
     const headers = data.shift();
-    console.log("Found rows:", data.length);
+    console.log("Found raw rows:", data.length);
     
-    return data.map(row => {
-      return {
-        id: row[0] ? row[0].toString() : "",
-        date: row[1] || "",
-        fromCode: row[2] || "",
-        toCode: row[3] || "",
-        fromAmount: Number(row[4]) || 0,
-        toAmount: Number(row[5]) || 0,
-        marketRate: Number(row[6]) || 0,
-        diffPercent: Number(row[7]) || 0,
-        note: row[8] || ""
-      };
-    }).reverse();
+    const transactions = data.map((row, index) => {
+      try {
+        // Safe Date Formatting: native Date objects from Sheets can fail JSON serialization
+        let dateStr = "";
+        if (row[1] instanceof Date) {
+          dateStr = Utilities.formatDate(row[1], Session.getScriptTimeZone(), "yyyy/MM/dd HH:mm:ss");
+        } else {
+          dateStr = String(row[1] || "");
+        }
+
+        return {
+          id: row[0] ? row[0].toString() : "tx_" + index,
+          date: dateStr,
+          fromCode: String(row[2] || ""),
+          toCode: String(row[3] || ""),
+          fromAmount: Number(row[4]) || 0,
+          toAmount: Number(row[5]) || 0,
+          marketRate: Number(row[6]) || 0,
+          diffPercent: Number(row[7]) || 0,
+          note: String(row[8] || "")
+        };
+      } catch (rowErr) {
+        console.error("Error parsing row " + index + ":", rowErr.message);
+        return null;
+      }
+    }).filter(tx => tx !== null); // Remove failed rows
+
+    console.log("Successfully parsed transactions:", transactions.length);
+    return transactions.reverse(); // Latest first
   } catch (e) {
-    console.error("Error in getTransactions:", e.message);
+    console.error("Critical error in getTransactions:", e.message);
     return [];
   }
 }

@@ -240,8 +240,9 @@
                 .fetchLiveRates();
         };
 
-        const loadTransactions = () => {
+        const loadTransactions = (showLoading = false) => {
             if (typeof google === 'undefined') return;
+            if (showLoading) setIsLoading(true);
             console.log("正在載入歷史紀錄，試算表 ID:", spreadsheetId);
             google.script.run
                 .withSuccessHandler((data) => {
@@ -249,9 +250,11 @@
                         console.log("成功載入歷史紀錄數:", data.length);
                         setTransactions(data);
                     }
+                    if (showLoading) setIsLoading(false);
                 })
                 .withFailureHandler((err) => {
                     console.error("載入歷史紀錄失敗:", err);
+                    if (showLoading) setIsLoading(false);
                 })
                 .getTransactions(spreadsheetId);
         };
@@ -517,13 +520,19 @@
                                         <DollarSign className="text-indigo-500" size={20} />
                                     </div>
                                     <div>
-                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">總盈虧累計 (TWD)</p>
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">總盈虧累計 (TWD)</p>
                                         <h3 className={`text-2xl font-black ${stats.totalTWD >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
                                             {stats.totalTWD >= 0 ? '+' : ''}{stats.totalTWD.toFixed(2)}
                                         </h3>
                                     </div>
                                 </div>
-                                <TrendingUp className={`w-8 h-8 opacity-20 ${stats.totalTWD >= 0 ? 'text-emerald-500' : 'text-rose-500'}`} size={32} />
+                                <button
+                                    onClick={() => loadTransactions(true)}
+                                    className="p-4 neu-flat rounded-2xl active:scale-95 transition-all outline-none"
+                                    title="同步試算表歷史紀錄"
+                                >
+                                    <RefreshCw className={`${isLoading ? 'animate-spin text-indigo-500' : 'text-slate-400'}`} size={18} />
+                                </button>
                             </div>
 
                             <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
