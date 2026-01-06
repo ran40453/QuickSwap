@@ -1,8 +1,10 @@
 <script type="text/babel">
     /**
-     * QuickSwap Frontend Logic (Refined Version)
+     * QuickSwap Frontend Logic (Dynamic Binding Version)
      */
     const { useState, useEffect, useMemo, useCallback } = React;
+
+    const STORAGE_KEY = 'quickswap_spreadsheet_id';
 
     // --- Inline SVG Icons ---
     const Icon = ({ children, size = 20, className = "" }) => (
@@ -57,6 +59,12 @@
     const Settings2 = (props) => (
         <Icon {...props}><path d="M20 7h-9" /><path d="M14 17H5" /><circle cx="17" cy="17" r="3" /><circle cx="7" cy="7" r="3" /></Icon>
     );
+    const Copy = (props) => (
+        <Icon {...props}><rect width="14" height="14" x="8" y="8" rx="2" ry="2" /><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" /></Icon>
+    );
+    const Check = (props) => (
+        <Icon {...props}><polyline points="20 6 9 17 4 12" /></Icon>
+    );
 
     // --- Components ---
 
@@ -109,9 +117,79 @@
         );
     };
 
+    /**
+     * Onboarding Screen
+     */
+    const Onboarding = ({ onComplete }) => {
+        const [id, setId] = useState('');
+        const [step, setStep] = useState(1);
+
+        const handleStart = () => {
+            if (id.length > 20) {
+                onComplete(id);
+            } else {
+                alert("請輸入有效的 Google Sheet ID (通常為一長串字元)");
+            }
+        };
+
+        return (
+            <div className="min-h-screen flex items-center justify-center p-6 animate-fadeIn">
+                <div className="neu-flat w-full max-w-sm rounded-[3rem] p-8 space-y-8 flex flex-col items-center text-center">
+                    <div className="p-5 neu-flat rounded-3xl">
+                        <ArrowRightLeft size={40} className="text-indigo-600" />
+                    </div>
+
+                    <div className="space-y-2">
+                        <h1 className="text-2xl font-black text-slate-800 tracking-tight">歡迎使用 QuickSwap</h1>
+                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest leading-relaxed">
+                            開始前，請綁定您的專屬資料庫
+                        </p>
+                    </div>
+
+                    <div className="w-full space-y-6">
+                        <div className="neu-inset p-5 rounded-3xl text-left space-y-3">
+                            <div className="flex items-center gap-3">
+                                <div className="w-6 h-6 rounded-full bg-indigo-500 text-white flex items-center justify-center text-[10px] font-bold">1</div>
+                                <p className="text-[11px] font-bold text-slate-600">建立一個新的 Google Sheet</p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <div className="w-6 h-6 rounded-full bg-indigo-500 text-white flex items-center justify-center text-[10px] font-bold">2</div>
+                                <p className="text-[11px] font-bold text-slate-600 truncate">從網址複製 ID (d/ 與 /edit 之間)</p>
+                            </div>
+                        </div>
+
+                        <div className="space-y-3">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block text-left">貼上試算表 ID</label>
+                            <div className="neu-inset rounded-2xl px-4 py-4 flex items-center">
+                                <input
+                                    type="text"
+                                    value={id}
+                                    onChange={(e) => setId(e.target.value)}
+                                    placeholder="15inrUERXm3q..."
+                                    className="w-full bg-transparent border-none font-bold text-sm focus:ring-0 outline-none placeholder-slate-300"
+                                />
+                            </div>
+                            <p className="text-[9px] text-slate-400 font-medium leading-relaxed italic">
+                                * 本 App 不會公開您的資料，僅儲存於您指定的試算表中。
+                            </p>
+                        </div>
+
+                        <button
+                            onClick={handleStart}
+                            className="w-full py-5 neu-flat rounded-[1.8rem] text-indigo-600 font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 active:scale-95 transition-all outline-none"
+                        >
+                            完成綁定並開始 <ChevronRight size={18} />
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
     // --- Main App ---
 
     const App = () => {
+        const [spreadsheetId, setSpreadsheetId] = useState(localStorage.getItem(STORAGE_KEY));
         const [activeTab, setActiveTab] = useState('exchange');
         const [rates, setRates] = useState({
             USD: 1, TWD: 32.5, CNY: 7.24, VND: 25400, HKD: 7.8, KRW: 1350, JPY: 155, EUR: 0.92, GBP: 0.78,
@@ -127,17 +205,14 @@
         const [visibleCurrencies, setVisibleCurrencies] = useState(['USD', 'TWD', 'CNY', 'VND', 'HKD', 'KRW']);
         const [isEditingIdx, setIsEditingIdx] = useState(null);
         const [searchTerm, setSearchTerm] = useState('');
-
-        // Comparison Tool State
-        const [offerFrom, setOfferFrom] = useState('TWD');
-        const [offerTo, setOfferTo] = useState('VND');
-        const [offerAmountFrom, setOfferAmountFrom] = useState(1000);
-        const [offerAmountTo, setOfferAmountTo] = useState(780000);
+        const [showOptions, setShowOptions] = useState(false);
 
         useEffect(() => {
-            updateRates();
-            loadTransactions();
-        }, []);
+            if (spreadsheetId) {
+                updateRates();
+                loadTransactions();
+            }
+        }, [spreadsheetId]);
 
         const updateRates = () => {
             setIsLoading(true);
@@ -165,7 +240,7 @@
                 .withSuccessHandler((data) => {
                     if (data) setTransactions(data);
                 })
-                .getTransactions();
+                .getTransactions(spreadsheetId);
         };
 
         const handleAmountChange = (code, value) => {
@@ -202,7 +277,7 @@
                         setTransactions([newTx, ...transactions]);
                         alert("已儲存紀錄到 Google Sheets！");
                     })
-                    .saveTransaction(newTx);
+                    .saveTransaction(newTx, spreadsheetId);
             } else {
                 setTransactions([newTx, ...transactions]);
                 alert("已模擬儲存 (Local)");
@@ -216,10 +291,23 @@
                         .withSuccessHandler(() => {
                             setTransactions(transactions.filter(t => t.id !== id));
                         })
-                        .deleteTransaction(id);
+                        .deleteTransaction(id, spreadsheetId);
                 } else {
                     setTransactions(transactions.filter(t => t.id !== id));
                 }
+            }
+        };
+
+        const handleOnboardingComplete = (id) => {
+            localStorage.setItem(STORAGE_KEY, id);
+            setSpreadsheetId(id);
+        };
+
+        const resetBinding = () => {
+            if (confirm("確定要解除目前的試算表綁定嗎？這不會刪除資料，但您需要重新輸入 ID。")) {
+                localStorage.removeItem(STORAGE_KEY);
+                setSpreadsheetId(null);
+                setShowOptions(false);
             }
         };
 
@@ -263,12 +351,25 @@
             return formatted + " Powered by Cody";
         }, []);
 
+        // Comparison Tool Local State
+        const [offerFrom, setOfferFrom] = useState('TWD');
+        const [offerTo, setOfferTo] = useState('VND');
+        const [offerAmountFrom, setOfferAmountFrom] = useState(1000);
+        const [offerAmountTo, setOfferAmountTo] = useState(780000);
+
+        if (!spreadsheetId) {
+            return <Onboarding onComplete={handleOnboardingComplete} />;
+        }
+
         return (
             <div className="app-container px-4 max-w-lg mx-auto overflow-x-hidden">
                 {/* Header */}
                 <div className="flex items-center justify-between mb-8">
                     <div className="flex items-center gap-3">
-                        <div className="p-3 neu-flat rounded-2xl">
+                        <div
+                            className="p-3 neu-flat rounded-2xl active:neu-inset transition-all cursor-pointer"
+                            onClick={() => setShowOptions(!showOptions)}
+                        >
                             <ArrowRightLeft className="text-indigo-600" size={20} />
                         </div>
                         <div>
@@ -283,6 +384,23 @@
                         <RefreshCw className={`${isLoading ? 'animate-spin text-indigo-500' : 'text-slate-500'}`} size={20} />
                     </button>
                 </div>
+
+                {/* Floating Options Menu */}
+                {showOptions && (
+                    <div className="absolute top-28 left-4 z-[100] animate-fadeIn">
+                        <div className="neu-flat rounded-2xl p-2 w-48 space-y-1">
+                            <button
+                                onClick={resetBinding}
+                                className="w-full text-left px-4 py-3 rounded-xl hover:bg-slate-50 text-[11px] font-bold text-rose-500 flex items-center gap-2"
+                            >
+                                <RefreshCw size={14} /> 解除試算表綁定
+                            </button>
+                            <div className="px-4 py-2 border-t border-slate-100 italic text-[9px] text-slate-400">
+                                ID: {spreadsheetId.substring(0, 10)}...
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 <main>
                     {/* TAB 1: EXCHANGE */}
@@ -454,7 +572,6 @@
                                 <button onClick={() => { setIsEditingIdx(null); setSearchTerm(''); }} className="p-2 neu-flat-sm rounded-full active:scale-90 transition-all outline-none"><X size={16} /></button>
                             </div>
 
-                            {/* Search Bar */}
                             <div className="mb-6 relative">
                                 <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
                                     <Search size={16} />

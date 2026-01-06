@@ -3,7 +3,7 @@
  * Google Apps Script Backend
  */
 
-const SPREADSHEET_ID = '1XiP9VSxV2sRq44AnWLiRxAA13rWrW-e1bevRufaDTFGmZalKpOhp9YD8';
+const SPREADSHEET_ID = '15inrUERXm3qTU697GzZsmcc7UsBX6fgg9wM-Mq559Bc';
 const SHEET_NAME = 'Transactions';
 
 /**
@@ -112,8 +112,8 @@ function getFallbackRates() {
 /**
  * CRUD: Save Transaction to Google Sheet
  */
-function saveTransaction(tx) {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+function saveTransaction(tx, spreadsheetId) {
+  const ss = SpreadsheetApp.openById(spreadsheetId || SPREADSHEET_ID);
   let sheet = ss.getSheetByName(SHEET_NAME);
   
   if (!sheet) {
@@ -140,8 +140,8 @@ function saveTransaction(tx) {
 /**
  * CRUD: Get all Transactions
  */
-function getTransactions() {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+function getTransactions(spreadsheetId) {
+  const ss = SpreadsheetApp.openById(spreadsheetId || SPREADSHEET_ID);
   const sheet = ss.getSheetByName(SHEET_NAME);
   if (!sheet) return [];
 
@@ -166,8 +166,8 @@ function getTransactions() {
 /**
  * CRUD: Delete Transaction
  */
-function deleteTransaction(id) {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+function deleteTransaction(id, spreadsheetId) {
+  const ss = SpreadsheetApp.openById(spreadsheetId || SPREADSHEET_ID);
   const sheet = ss.getSheetByName(SHEET_NAME);
   if (!sheet) return { success: false };
 
