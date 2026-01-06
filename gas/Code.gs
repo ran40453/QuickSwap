@@ -31,71 +31,72 @@ function fetchLiveRates() {
   const apiKey = PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY');
   if (!apiKey) {
     return {
-      error: 'GEMINI_API_KEY not found in Script Properties.',
+      error: 'GEMINI_API_KEY not found.',
       rates: getFallbackRates(),
-      insight: { summary: '無法取得腳本屬性中的 API 金鑰。', sources: [] }
+      insight: { summary: '未設定 API 金鑰。', sources: [] }
     };
   }
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`;
   
-  const payload = {
-    contents: [{
-      parts: [{
-        text: `Find the latest real-time exchange rates for 1 USD to TWD, CNY, VND, HKD, JPY, EUR, GBP, KRW. 
-               Return only a JSON object matching this structure:
-               {
-                 "rates": { "USD": 1, "TWD": number, "CNY": number, "VND": number, "HKD": number, "JPY": number, "EUR": number, "GBP": number, "KRW": number },
-                 "summary": "Short 1-sentence market trend comment in Traditional Chinese"
-               }`
-      }]
-    }],
-    tools: [{ google_search: {} }],
-    generationConfig: {
-      response_mime_type: "application/json"
+  // 擴大請求範圍，涵蓋常見幣別
+  const prompt = `
+    Find the DEFINITIVE REAL-TIME exchange rates as of today (${new Date().toLocaleDateString('zh-TW')}).
+    Base currency is 1 USD. 
+    Provide rates for: TWD, HKD, CNY, JPY, KRW, VND, SGD, THB, MYR, PHP, IDR, EUR, GBP, AUD, CAD, CHF, BTC, ETH.
+    Also include rates for any other major currencies you find.
+    
+    Return ONLY a JSON object:
+    {
+      "rates": { "USD": 1, "TWD": number, "HKD": number, ... },
+      "summary": "1-sentence current market summary in Traditional Chinese"
     }
+  `;
+
+  const payload = {
+    contents: [{ parts: [{ text: prompt }] }],
+    tools: [{ google_search: {} }],
+    generationConfig: { response_mime_type: "application/json" }
   };
 
   try {
     const options = {
       method: 'post',
       contentType: 'application/json',
-      payload: JSON.stringify(payload)
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
     };
     const response = UrlFetchApp.fetch(url, options);
     const result = JSON.parse(response.getContentText());
     
-    // Extract JSON from text response (Gemini sometimes wraps it)
+    if (result.error) throw new Error(result.error.message);
+
     const textResponse = result.candidates[0].content.parts[0].text;
     const data = JSON.parse(textResponse);
     
-    // Extract sources from grounding metadata if available
-    const groundingMetadata = result.candidates[0].groundingMetadata;
-    const sources = [];
-    if (groundingMetadata && groundingMetadata.groundingChunks) {
-      groundingMetadata.groundingChunks.forEach(chunk => {
-        if (chunk.web) {
-          sources.push({ title: chunk.web.title, uri: chunk.web.uri });
-        }
-      });
-    }
+    // 合併備用數據以確保完整性
+    const finalRates = {
+      ...getFallbackRates(),
+      ...data.rates,
+      lastUpdated: new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })
+    };
 
     return {
-      rates: {
-        ...data.rates,
-        lastUpdated: new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })
-      },
+      rates: finalRates,
       insight: {
         summary: data.summary || "目前匯率保持穩定。",
-        sources: sources
+        sources: []
       }
     };
   } catch (e) {
     console.error('Gemini API Error:', e);
     return {
-      rates: getFallbackRates(),
+      rates: {
+        ...getFallbackRates(),
+        lastUpdated: "備用數據 (" + new Date().toLocaleTimeString('zh-TW') + ")"
+      },
       insight: {
-        summary: "無法取得即時匯率，目前顯示預設參考值。",
+        summary: "系統暫時無法取得即時數據，目前顯示參考值。",
         sources: []
       }
     };
@@ -103,9 +104,10 @@ function fetchLiveRates() {
 }
 
 function getFallbackRates() {
+  // 基礎備用匯率
   return {
     USD: 1, TWD: 32.5, CNY: 7.24, VND: 25400, HKD: 7.8, KRW: 1350, JPY: 155, EUR: 0.92, GBP: 0.78,
-    lastUpdated: "備用數據 (API 連線失敗)"
+    SGD: 1.34, MYR: 4.7, THB: 36.50, AUD: 1.51, CAD: 1.37, CHF: 0.91, BTC: 65000, ETH: 3500
   };
 }
 

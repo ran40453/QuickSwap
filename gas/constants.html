@@ -1,20 +1,48 @@
 <script>
     const CURRENCY_CONFIG = {
-        USD: { code: 'USD', name: '美金', symbol: '$', flag: '🇺🇸' },
+        // 亞洲
         TWD: { code: 'TWD', name: '台幣', symbol: 'NT$', flag: '🇹🇼' },
-        CNY: { code: 'CNY', name: '人民幣', symbol: '¥', flag: '🇨🇳' },
-        VND: { code: 'VND', name: '越南盾', symbol: '₫', flag: '🇻🇳' },
         HKD: { code: 'HKD', name: '港幣', symbol: 'HK$', flag: '🇭🇰' },
-        KRW: { code: 'KRW', name: '韓元', symbol: '₩', flag: '🇰🇷' },
+        CNY: { code: 'CNY', name: '人民幣', symbol: '¥', flag: '🇨🇳' },
         JPY: { code: 'JPY', name: '日圓', symbol: '¥', flag: '🇯🇵' },
-        EUR: { code: 'EUR', name: '歐元', symbol: '€', flag: '🇪🇺' },
-        GBP: { code: 'GBP', name: '英鎊', symbol: '£', flag: '🇬🇧' },
+        KRW: { code: 'KRW', name: '韓元', symbol: '₩', flag: '🇰🇷' },
+        VND: { code: 'VND', name: '越南盾', symbol: '₫', flag: '🇻🇳' },
         SGD: { code: 'SGD', name: '新幣', symbol: 'S$', flag: '🇸🇬' },
-        MYR: { code: 'MYR', name: '馬幣', symbol: 'RM', flag: '🇲🇾' },
         THB: { code: 'THB', name: '泰銖', symbol: '฿', flag: '🇹🇭' },
+        MYR: { code: 'MYR', name: '馬幣', symbol: 'RM', flag: '🇲🇾' },
         PHP: { code: 'PHP', name: '披索', symbol: '₱', flag: '🇵🇭' },
         IDR: { code: 'IDR', name: '印尼盾', symbol: 'Rp', flag: '🇮🇩' },
+        MOP: { code: 'MOP', name: '澳門幣', symbol: 'MOP$', flag: '🇲🇴' },
+        INR: { code: 'INR', name: '印度盧比', symbol: '₹', flag: '🇮🇳' },
+        // 美洲
+        USD: { code: 'USD', name: '美金', symbol: '$', flag: '🇺🇸' },
+        CAD: { code: 'CAD', name: '加幣', symbol: 'C$', flag: '🇨🇦' },
+        MXN: { code: 'MXN', name: '墨西哥披索', symbol: '$', flag: '🇲🇽' },
+        BRL: { code: 'BRL', name: '巴西雷亞爾', symbol: 'R$', flag: '🇧🇷' },
+        ARS: { code: 'ARS', name: '阿根廷披索', symbol: '$', flag: '🇦🇷' },
+        // 歐洲
+        EUR: { code: 'EUR', name: '歐元', symbol: '€', flag: '🇪🇺' },
+        GBP: { code: 'GBP', name: '英鎊', symbol: '£', flag: '🇬🇧' },
+        CHF: { code: 'CHF', name: '瑞士法郎', symbol: 'CHF', flag: '🇨🇭' },
+        SEK: { code: 'SEK', name: '瑞典克朗', symbol: 'kr', flag: '🇸🇪' },
+        NOK: { code: 'NOK', name: '挪威克朗', symbol: 'kr', flag: '🇳🇴' },
+        DKK: { code: 'DKK', name: '丹麥克朗', symbol: 'kr', flag: '🇩🇰' },
+        CZK: { code: 'CZK', name: '捷克克朗', symbol: 'Kč', flag: '🇨🇿' },
+        PLN: { code: 'PLN', name: '波蘭茲羅提', symbol: 'zł', flag: '🇵🇱' },
+        HUF: { code: 'HUF', name: '匈牙利福林', symbol: 'Ft', flag: '🇭🇺' },
+        TRY: { code: 'TRY', name: '土耳其里拉', symbol: '₺', flag: '🇹🇷' },
+        RUB: { code: 'RUB', name: '俄羅斯盧布', symbol: '₽', flag: '🇷🇺' },
+        // 大洋洲
         AUD: { code: 'AUD', name: '澳幣', symbol: 'A$', flag: '🇦🇺' },
-        CAD: { code: 'CAD', name: '加幣', symbol: 'C$', flag: '🇨🇦' }
+        NZD: { code: 'NZD', name: '紐西蘭幣', symbol: 'NZ$', flag: '🇳🇿' },
+        // 中東與非洲
+        AED: { code: 'AED', name: '阿聯酋迪拉姆', symbol: 'د.إ', flag: '🇦🇪' },
+        SAR: { code: 'SAR', name: '沙烏地里亞爾', symbol: '﷼', flag: '🇸🇦' },
+        ILS: { code: 'ILS', name: '以色列新謝克爾', symbol: '₪', flag: '🇮🇱' },
+        ZAR: { code: 'ZAR', name: '南非蘭特', symbol: 'R', flag: '🇿🇦' },
+        EGP: { code: 'EGP', name: '埃及鎊', symbol: 'E£', flag: '🇪🇬' },
+        // 加密貨幣 (常用參考)
+        BTC: { code: 'BTC', name: '比特幣', symbol: '₿', flag: '🪙' },
+        ETH: { code: 'ETH', name: '乙太幣', symbol: 'Ξ', flag: '💎' },
     };
 </script>
