@@ -195,6 +195,7 @@
             USD: 1, TWD: 32.5, CNY: 7.24, VND: 25400, HKD: 7.8, KRW: 1350, JPY: 155, EUR: 0.92, GBP: 0.78,
             lastUpdated: "正在載入..."
         });
+        const [marketSummary, setMarketSummary] = useState("正在獲取市場洞察...");
         const [baseAmount, setBaseAmount] = useState(100);
         const [activeCurrency, setActiveCurrency] = useState('USD');
         const [isLoading, setIsLoading] = useState(true);
@@ -231,6 +232,9 @@
                     if (data && data.rates) {
                         setRates(data.rates);
                     }
+                    if (data && data.insight) {
+                        setMarketSummary(data.insight.summary);
+                    }
                     setIsLoading(false);
                 })
                 .withFailureHandler((err) => {
@@ -242,9 +246,16 @@
 
         const loadTransactions = () => {
             if (typeof google === 'undefined') return;
+            console.log("正在載入歷史紀錄，試算表 ID:", spreadsheetId);
             google.script.run
                 .withSuccessHandler((data) => {
-                    if (data) setTransactions(data);
+                    if (data) {
+                        console.log("成功載入歷史紀錄數:", data.length);
+                        setTransactions(data);
+                    }
+                })
+                .withFailureHandler((err) => {
+                    console.error("載入歷史紀錄失敗:", err);
                 })
                 .getTransactions(spreadsheetId);
         };
@@ -419,8 +430,11 @@
                                 ))}
                             </div>
 
-                            <div className="text-center pt-8">
-                                <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">
+                            <div className="text-center pt-8 space-y-3">
+                                <div className="neu-inset p-4 rounded-2xl text-[10px] font-bold text-slate-500 italic leading-relaxed">
+                                    "{marketSummary}"
+                                </div>
+                                <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest block">
                                     最後更新：{rates.lastUpdated}
                                 </span>
                             </div>
@@ -606,7 +620,7 @@
                                                 setSearchTerm('');
                                             }}
                                             disabled={isVisibleInList}
-                                            className={`p-4 rounded-[1.5rem] flex flex-col items-center gap-2 transition-all ${isVisibleInList ? 'neu-inset opacity-40 cursor-not-allowed' : 'neu-flat-sm active:neu-inset hover:bg-slate-50'}`}
+                                            className={`p-4 rounded-[1.5rem] flex flex-col items-center justify-center gap-2 transition-all min-h-[110px] ${isVisibleInList ? 'neu-inset opacity-40 cursor-not-allowed' : 'neu-flat-sm active:neu-inset hover:bg-slate-50'}`}
                                         >
                                             <span className="text-2xl drop-shadow-sm">{config.flag}</span>
                                             <span className="text-[10px] font-black text-slate-600">{config.code}</span>

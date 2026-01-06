@@ -39,24 +39,32 @@ function fetchLiveRates() {
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`;
   
-  // 擴大請求範圍，涵蓋常見幣別
+  // Create a dynamic, urgent prompt to bypass any potential stale knowledge
+  const now = new Date();
   const prompt = `
-    Find the DEFINITIVE REAL-TIME exchange rates as of today (${new Date().toLocaleDateString('zh-TW')}).
-    Base currency is 1 USD. 
+    Find the DEFINITIVE REAL-TIME exchange rates as of this exact moment: ${now.toLocaleString('zh-TW')} (Asia/Taipei).
+    Base currency is 1 USD.
+    
+    CRITICAL: You MUST use Google Search to find the CURRENT price of Bitcoin (BTC) in USD. 
+    It is currently well above $90,000. Do NOT use training data values like $65,000.
+    
     Provide rates for: TWD, HKD, CNY, JPY, KRW, VND, SGD, THB, MYR, PHP, IDR, EUR, GBP, AUD, CAD, CHF, BTC, ETH.
-    Also include rates for any other major currencies you find.
+    Also include any other major currencies you find.
     
     Return ONLY a JSON object:
     {
-      "rates": { "USD": 1, "TWD": number, "HKD": number, ... },
-      "summary": "1-sentence current market summary in Traditional Chinese"
+      "rates": { "USD": 1, "TWD": number, "BTC": number, ... },
+      "summary": "1-sentence market trend (Traditional Chinese) mentioning current BTC price"
     }
   `;
 
   const payload = {
     contents: [{ parts: [{ text: prompt }] }],
     tools: [{ google_search: {} }],
-    generationConfig: { response_mime_type: "application/json" }
+    generationConfig: { 
+      response_mime_type: "application/json",
+      temperature: 0.1
+    }
   };
 
   try {
@@ -74,7 +82,6 @@ function fetchLiveRates() {
     const textResponse = result.candidates[0].content.parts[0].text;
     const data = JSON.parse(textResponse);
     
-    // 合併備用數據以確保完整性
     const finalRates = {
       ...getFallbackRates(),
       ...data.rates,
@@ -96,7 +103,7 @@ function fetchLiveRates() {
         lastUpdated: "備用數據 (" + new Date().toLocaleTimeString('zh-TW') + ")"
       },
       insight: {
-        summary: "系統暫時無法取得即時數據，目前顯示參考值。",
+        summary: "系統暫時無法取得即時數據，目前顯示參考值，請稍後重試。",
         sources: []
       }
     };
