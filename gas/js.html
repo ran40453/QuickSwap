@@ -163,14 +163,24 @@
                     </div>
 
                     <div className="w-full space-y-6">
-                        <div className="neu-inset p-5 rounded-3xl text-left space-y-3">
-                            <div className="flex items-center gap-3">
-                                <div className="w-6 h-6 rounded-full bg-indigo-500 text-white flex items-center justify-center text-[10px] font-bold">1</div>
-                                <p className="text-[11px] font-bold text-slate-600">建立一個新的 Google Sheet</p>
+                        <div className="neu-inset p-5 rounded-3xl text-left space-y-4">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-6 h-6 rounded-full bg-indigo-500 text-white flex items-center justify-center text-[10px] font-bold">1</div>
+                                    <p className="text-[11px] font-bold text-slate-600">開啟並複製試算表網址</p>
+                                </div>
+                                <a
+                                    href="https://docs.google.com/spreadsheets/"
+                                    target="_blank"
+                                    className="p-2 neu-flat-sm rounded-xl text-indigo-600 active:scale-90 transition-all"
+                                    title="開啟 Google 試算表"
+                                >
+                                    <ExternalLink size={14} />
+                                </a>
                             </div>
                             <div className="flex items-center gap-3">
                                 <div className="w-6 h-6 rounded-full bg-indigo-500 text-white flex items-center justify-center text-[10px] font-bold">2</div>
-                                <p className="text-[11px] font-bold text-slate-600 truncate">直接貼上整段網址連結即可</p>
+                                <p className="text-[11px] font-bold text-slate-600 truncate">回到此處貼上連結即可</p>
                             </div>
                         </div>
 
@@ -467,7 +477,7 @@
                                     最後更新：{rates.lastUpdated}
                                 </span>
                                 <span className="text-[8px] font-bold text-slate-200 uppercase tracking-tighter block">
-                                    Ver: 1.0.6-UIUpdate
+                                    Ver: 1.0.7-UXRefined
                                 </span>
                             </div>
                         </div>
