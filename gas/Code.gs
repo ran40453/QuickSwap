@@ -30,44 +30,54 @@ function include(filename) {
  */
 function fetchLiveRates() {
   const rates = getFallbackRates();
+  let statusInfo = "數據已即時更新。";
   
+  // 1. Fetch Fiat Rates (USD base) - Exchangerate-API
   try {
-    // 1. Fetch Fiat Rates (USD base) from Exchangerate-API (Fast & Accurate)
     const fiatUrl = 'https://open.er-api.com/v6/latest/USD';
-    const fiatResponse = UrlFetchApp.fetch(fiatUrl);
-    const fiatData = JSON.parse(fiatResponse.getContentText());
-    
-    if (fiatData && fiatData.rates) {
-      Object.keys(fiatData.rates).forEach(code => {
-        rates[code] = fiatData.rates[code];
+    const response = UrlFetchApp.fetch(fiatUrl, {
+      muteHttpExceptions: true,
+      headers: { 'User-Agent': 'QuickSwapConverter/1.0' }
+    });
+    const data = JSON.parse(response.getContentText());
+    if (data && data.rates) {
+      Object.keys(data.rates).forEach(code => {
+        rates[code] = data.rates[code];
       });
+      console.log("Fiat rates updated successfully.");
     }
-
-    // 2. Fetch Crypto Rates (BTC, ETH) from CoinGecko
-    const cryptoUrl = 'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd';
-    const cryptoResponse = UrlFetchApp.fetch(cryptoUrl);
-    const cryptoData = JSON.parse(cryptoResponse.getContentText());
-    
-    // Convert to "1 USD = X BTC" format to stay consistent with fiat rates
-    if (cryptoData.bitcoin) rates['BTC'] = 1 / cryptoData.bitcoin.usd;
-    if (cryptoData.ethereum) rates['ETH'] = 1 / cryptoData.ethereum.usd;
-    
-    rates.lastUpdated = new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });
-    
-    return {
-      rates: rates,
-      insight: { summary: "數據已從權威金融接口即時更新。", sources: [] }
-    };
   } catch (e) {
-    console.error('API Fetch Error:', e);
-    return {
-      rates: {
-        ...getFallbackRates(),
-        lastUpdated: "連線異常，顯示備用數據 (" + new Date().toLocaleTimeString('zh-TW') + ")"
-      },
-      insight: { summary: "目前使用的是離線預設匯率數據。", sources: [] }
-    };
+    console.error('Fiat API Error:', e.message);
+    statusInfo = "法幣匯率連線不穩，";
   }
+
+  // 2. Fetch Crypto Rates (BTC, ETH) - CoinGecko
+  try {
+    const cryptoUrl = 'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd';
+    const response = UrlFetchApp.fetch(cryptoUrl, {
+      muteHttpExceptions: true,
+      headers: { 'User-Agent': 'QuickSwapConverter/1.0' }
+    });
+    
+    if (response.getResponseCode() === 200) {
+      const data = JSON.parse(response.getContentText());
+      if (data.bitcoin) rates['BTC'] = 1 / data.bitcoin.usd;
+      if (data.ethereum) rates['ETH'] = 1 / data.ethereum.usd;
+      console.log("Crypto rates updated successfully.");
+    } else {
+      throw new Error("HTTP " + response.getResponseCode());
+    }
+  } catch (e) {
+    console.error('Crypto API Error:', e.message);
+    statusInfo += "加密貨幣連線不穩。";
+  }
+
+  rates.lastUpdated = new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });
+  
+  return {
+    rates: rates,
+    insight: { summary: statusInfo, sources: [] }
+  };
 }
 
 function getFallbackRates() {

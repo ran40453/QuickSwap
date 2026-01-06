@@ -121,14 +121,26 @@
      * Onboarding Screen
      */
     const Onboarding = ({ onComplete }) => {
-        const [id, setId] = useState('');
-        const [step, setStep] = useState(1);
+        const [inputValue, setInputValue] = useState('');
+        const [parsedId, setParsedId] = useState('');
+
+        useEffect(() => {
+            // Regex to match Google Sheet ID from URL or extract it from raw string
+            const idMatch = inputValue.match(/\/d\/([a-zA-Z0-9-_]{25,})/);
+            if (idMatch && idMatch[1]) {
+                setParsedId(idMatch[1]);
+            } else if (inputValue.length > 25 && !inputValue.includes('/')) {
+                setParsedId(inputValue);
+            } else {
+                setParsedId('');
+            }
+        }, [inputValue]);
 
         const handleStart = () => {
-            if (id.length > 20) {
-                onComplete(id);
+            if (parsedId) {
+                onComplete(parsedId);
             } else {
-                alert("請輸入有效的 Google Sheet ID (通常為一長串字元)");
+                alert("請貼上有效的 Google Sheet 連結或 ID");
             }
         };
 
@@ -154,21 +166,26 @@
                             </div>
                             <div className="flex items-center gap-3">
                                 <div className="w-6 h-6 rounded-full bg-indigo-500 text-white flex items-center justify-center text-[10px] font-bold">2</div>
-                                <p className="text-[11px] font-bold text-slate-600 truncate">從網址複製 ID (d/ 與 /edit 之間)</p>
+                                <p className="text-[11px] font-bold text-slate-600 truncate">直接貼上整段網址連結即可</p>
                             </div>
                         </div>
 
                         <div className="space-y-3">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block text-left">貼上試算表 ID</label>
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block text-left">貼上試算表連結或 ID</label>
                             <div className="neu-inset rounded-2xl px-4 py-4 flex items-center">
                                 <input
                                     type="text"
-                                    value={id}
-                                    onChange={(e) => setId(e.target.value)}
-                                    placeholder="15inrUERXm3q..."
+                                    value={inputValue}
+                                    onChange={(e) => setInputValue(e.target.value)}
+                                    placeholder="https://docs.google.com/spreadsheets/d/..."
                                     className="w-full bg-transparent border-none font-bold text-sm focus:ring-0 outline-none placeholder-slate-300"
                                 />
                             </div>
+                            {parsedId && (
+                                <p className="text-[10px] text-emerald-500 font-bold italic animate-pulse">
+                                    ✓ 已成功自動識別試算表 ID
+                                </p>
+                            )}
                             <p className="text-[9px] text-slate-400 font-medium leading-relaxed italic">
                                 * 本 App 不會公開您的資料，僅儲存於您指定的試算表中。
                             </p>
