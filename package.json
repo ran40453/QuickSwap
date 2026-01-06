@@ -1,5 +1,5 @@
 {
-  "name": "quickswap---友誼匯率計算器",
+  "name": "currency-quickswap",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "update-id": "node scripts/update-gas-id.js"
+    "update-id": "node scripts/update-gas-id.js",
+    "push-deploy": "clasp push && clasp deploy -d 'Update GAS for iframe support' && npm run update-id",
+    "deploy-all": "npm run push-deploy"
   },
   "dependencies": {
     "react-dom": "^19.2.3",
