@@ -11,6 +11,7 @@ const SHEET_NAME = 'Transactions';
  */
 function doGet() {
   const template = HtmlService.createTemplateFromFile('index');
+  template.version = "v1.0.3-StandardAPI"; // Version stamp for debugging
   return template.evaluate()
     .setTitle('QuickSwap - 匯率快速計算及記錄器')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no')
@@ -70,10 +71,10 @@ function fetchLiveRates() {
 }
 
 function getFallbackRates() {
-  // Default values if API fails (approximate 1 USD = X)
+  // Ultra-current fallbacks (Jan 2026 approximate)
   return {
-    USD: 1, TWD: 32.5, CNY: 7.24, VND: 25400, HKD: 7.8, KRW: 1350, JPY: 155, EUR: 0.92, GBP: 0.78,
-    SGD: 1.34, MYR: 4.7, THB: 36.50, AUD: 1.51, CAD: 1.37, CHF: 0.91, BTC: 0.0000105, ETH: 0.00028
+    USD: 1, TWD: 32.8, CNY: 7.3, VND: 25450, HKD: 7.82, KRW: 1380, JPY: 156, EUR: 0.95, GBP: 0.82,
+    SGD: 1.35, MYR: 4.75, THB: 36.80, AUD: 1.55, CAD: 1.40, CHF: 0.92, BTC: 0.0000104, ETH: 0.00028
   };
 }
 
