@@ -477,7 +477,7 @@
                                     最後更新：{rates.lastUpdated}
                                 </span>
                                 <span className="text-[8px] font-bold text-slate-200 uppercase tracking-tighter block">
-                                    Ver: 1.0.7-UXRefined
+                                    Ver: 1.0.8-HistoryRefined
                                 </span>
                             </div>
                         </div>
@@ -588,27 +588,70 @@
                             {filteredTransactions.length === 0 ? (
                                 <div className="py-20 neu-inset rounded-[2rem] text-center text-slate-300 font-bold italic">尚無交易紀錄</div>
                             ) : (
-                                <div className="space-y-4">
-                                    {filteredTransactions.map(tx => (
-                                        <div key={tx.id} className="neu-flat p-5 rounded-3xl flex items-center justify-between group">
-                                            <div className="flex items-center gap-4">
-                                                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${tx.diffPercent > 0 ? 'neu-inset text-emerald-500' : 'neu-inset text-rose-500'}`}>
-                                                    {tx.diffPercent > 0 ? <TrendingUp size={20} /> : <TrendingDown size={20} />}
+                                <div className="space-y-4 pb-24">
+                                    {filteredTransactions.map(tx => {
+                                        const fromConfig = CURRENCY_CONFIG[tx.fromCode] || { flag: '?' };
+                                        const toConfig = CURRENCY_CONFIG[tx.toCode] || { flag: '?' };
+
+                                        // Calculate TWD Impact for this specific record
+                                        const marketToAmount = tx.fromAmount * tx.marketRate;
+                                        const profitInTarget = tx.toAmount - marketToAmount;
+                                        const twdRate = rates['TWD'] || 32.5;
+                                        const targetRate = rates[tx.toCode] || 1;
+                                        const individualProfitTWD = profitInTarget * (twdRate / targetRate);
+
+                                        return (
+                                            <div key={tx.id} className="neu-flat p-5 rounded-[2.5rem] space-y-4 group">
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="neu-inset p-2 rounded-xl text-[10px] font-black text-slate-400 uppercase tracking-tighter">
+                                                            {tx.date?.split(' ')?.[0]}
+                                                        </div>
+                                                    </div>
+                                                    <div className={`px-4 py-1.5 rounded-full text-[10px] font-black tracking-widest uppercase ${individualProfitTWD >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+                                                        {individualProfitTWD >= 0 ? '+' : ''}{individualProfitTWD.toFixed(2)} TWD
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <div className="flex items-center gap-2 font-black text-slate-700 text-sm">
-                                                        {tx.fromAmount} {tx.fromCode} <ChevronRight className="text-slate-300" size={12} /> {tx.toAmount} {tx.toCode}
+
+                                                <div className="flex items-center justify-between px-2">
+                                                    <div className="flex flex-col items-center gap-1">
+                                                        <span className="text-2xl drop-shadow-sm mb-1">{fromConfig.flag}</span>
+                                                        <span className="text-sm font-black text-slate-700">{formatNumber(tx.fromAmount)}</span>
+                                                        <span className="text-[9px] font-bold text-slate-400 uppercase">{tx.fromCode}</span>
                                                     </div>
-                                                    <div className="text-[10px] text-slate-400 font-bold uppercase mt-1">
-                                                        {tx.date?.split(' ')?.[0]} • 價差 {Math.abs(tx.diffPercent).toFixed(2)}%
+
+                                                    <div className="flex flex-col items-center justify-center flex-1">
+                                                        <div className="w-full h-px bg-slate-100 relative">
+                                                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 p-2 neu-flat-sm rounded-full bg-white">
+                                                                <ArrowRightLeft className="text-slate-300" size={12} />
+                                                            </div>
+                                                        </div>
+                                                        <span className="mt-4 text-[9px] font-black text-slate-300 uppercase italic">
+                                                            價差 {Math.abs(tx.diffPercent).toFixed(2)}%
+                                                        </span>
                                                     </div>
+
+                                                    <div className="flex flex-col items-center gap-1">
+                                                        <span className="text-2xl drop-shadow-sm mb-1">{toConfig.flag}</span>
+                                                        <span className="text-sm font-black text-slate-700">{formatNumber(tx.toAmount)}</span>
+                                                        <span className="text-[9px] font-bold text-slate-400 uppercase">{tx.toCode}</span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex items-center justify-between pt-2 border-t border-slate-50">
+                                                    <div className="text-[9px] font-bold text-slate-300 italic">
+                                                        1 : {formatBetterRate(tx.toAmount / tx.fromAmount)} (市場 {formatBetterRate(tx.marketRate)})
+                                                    </div>
+                                                    <button
+                                                        onClick={() => deleteTransaction(tx.id)}
+                                                        className="p-2 neu-flat-sm rounded-xl text-slate-300 hover:text-rose-500 transition-all outline-none"
+                                                    >
+                                                        <Trash2 size={14} />
+                                                    </button>
                                                 </div>
                                             </div>
-                                            <button onClick={() => deleteTransaction(tx.id)} className="p-3 neu-flat-sm rounded-xl text-slate-300 hover:text-rose-500 transition-all outline-none">
-                                                <Trash2 size={16} />
-                                            </button>
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                             )}
                         </div>
