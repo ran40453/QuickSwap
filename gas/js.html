@@ -442,6 +442,9 @@
                                             </div>
                                             <div className="flex-1 neu-inset rounded-2xl px-4 py-3">
                                                 <input type="number" value={offerAmountFrom} onChange={(e) => setOfferAmountFrom(parseFloat(e.target.value) || 0)} className="w-full bg-transparent border-none text-lg font-black focus:ring-0 outline-none" />
+                                                <div className="text-[9px] font-bold text-slate-400 uppercase mt-0.5">
+                                                    友情報價 1 : {currentFriendRate.toFixed(2)}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -460,6 +463,9 @@
                                             </div>
                                             <div className="flex-1 neu-inset rounded-2xl px-4 py-3">
                                                 <input type="number" value={offerAmountTo} onChange={(e) => setOfferAmountTo(parseFloat(e.target.value) || 0)} className="w-full bg-transparent border-none text-lg font-black focus:ring-0 outline-none" />
+                                                <div className="text-[9px] font-bold text-slate-400 uppercase mt-0.5">
+                                                    市場匯率 1 : {currentMarketRate.toFixed(2)}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
