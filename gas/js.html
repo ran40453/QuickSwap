@@ -195,7 +195,6 @@
             USD: 1, TWD: 32.5, CNY: 7.24, VND: 25400, HKD: 7.8, KRW: 1350, JPY: 155, EUR: 0.92, GBP: 0.78,
             lastUpdated: "正在載入..."
         });
-        const [marketSummary, setMarketSummary] = useState("正在獲取市場洞察...");
         const [baseAmount, setBaseAmount] = useState(100);
         const [activeCurrency, setActiveCurrency] = useState('USD');
         const [isLoading, setIsLoading] = useState(true);
@@ -231,9 +230,6 @@
                 .withSuccessHandler((data) => {
                     if (data && data.rates) {
                         setRates(data.rates);
-                    }
-                    if (data && data.insight) {
-                        setMarketSummary(data.insight.summary);
                     }
                     setIsLoading(false);
                 })
@@ -430,10 +426,7 @@
                                 ))}
                             </div>
 
-                            <div className="text-center pt-8 space-y-3">
-                                <div className="neu-inset p-4 rounded-2xl text-[10px] font-bold text-slate-500 italic leading-relaxed">
-                                    "{marketSummary}"
-                                </div>
+                            <div className="text-center pt-8">
                                 <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest block">
                                     最後更新：{rates.lastUpdated}
                                 </span>
@@ -620,7 +613,7 @@
                                                 setSearchTerm('');
                                             }}
                                             disabled={isVisibleInList}
-                                            className={`p-4 rounded-[1.5rem] flex flex-col items-center justify-center gap-2 transition-all min-h-[110px] ${isVisibleInList ? 'neu-inset opacity-40 cursor-not-allowed' : 'neu-flat-sm active:neu-inset hover:bg-slate-50'}`}
+                                            className={`p-4 rounded-[1.5rem] flex flex-col items-center justify-center gap-2 transition-all h-[110px] ${isVisibleInList ? 'neu-inset opacity-40 cursor-not-allowed' : 'neu-flat-sm active:neu-inset hover:bg-slate-50'}`}
                                         >
                                             <span className="text-2xl drop-shadow-sm">{config.flag}</span>
                                             <span className="text-[10px] font-black text-slate-600">{config.code}</span>

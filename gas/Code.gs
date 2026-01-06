@@ -39,22 +39,15 @@ function fetchLiveRates() {
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`;
   
-  // Create a dynamic, urgent prompt to bypass any potential stale knowledge
-  const now = new Date();
   const prompt = `
-    Find the DEFINITIVE REAL-TIME exchange rates as of this exact moment: ${now.toLocaleString('zh-TW')} (Asia/Taipei).
-    Base currency is 1 USD.
-    
-    CRITICAL: You MUST use Google Search to find the CURRENT price of Bitcoin (BTC) in USD. 
-    It is currently well above $90,000. Do NOT use training data values like $65,000.
-    
+    Find the DEFINITIVE REAL-TIME exchange rates for 1 USD.
+    Use authoritative financial sources like Google Finance, Yahoo Finance, Investing.com, or TradingView.
     Provide rates for: TWD, HKD, CNY, JPY, KRW, VND, SGD, THB, MYR, PHP, IDR, EUR, GBP, AUD, CAD, CHF, BTC, ETH.
-    Also include any other major currencies you find.
     
-    Return ONLY a JSON object:
+    Return ONLY a VALID JSON object:
     {
       "rates": { "USD": 1, "TWD": number, "BTC": number, ... },
-      "summary": "1-sentence market trend (Traditional Chinese) mentioning current BTC price"
+      "summary": "Short 1-sentence current market summary in Traditional Chinese"
     }
   `;
 
@@ -63,7 +56,7 @@ function fetchLiveRates() {
     tools: [{ google_search: {} }],
     generationConfig: { 
       response_mime_type: "application/json",
-      temperature: 0.1
+      temperature: 0
     }
   };
 
@@ -111,10 +104,9 @@ function fetchLiveRates() {
 }
 
 function getFallbackRates() {
-  // 基礎備用匯率
   return {
     USD: 1, TWD: 32.5, CNY: 7.24, VND: 25400, HKD: 7.8, KRW: 1350, JPY: 155, EUR: 0.92, GBP: 0.78,
-    SGD: 1.34, MYR: 4.7, THB: 36.50, AUD: 1.51, CAD: 1.37, CHF: 0.91, BTC: 65000, ETH: 3500
+    SGD: 1.34, MYR: 4.7, THB: 36.50, AUD: 1.51, CAD: 1.37, CHF: 0.91, BTC: 95000, ETH: 3500
   };
 }
 
@@ -150,26 +142,38 @@ function saveTransaction(tx, spreadsheetId) {
  * CRUD: Get all Transactions
  */
 function getTransactions(spreadsheetId) {
-  const ss = SpreadsheetApp.openById(spreadsheetId || SPREADSHEET_ID);
-  const sheet = ss.getSheetByName(SHEET_NAME);
-  if (!sheet) return [];
+  console.log("Entering getTransactions for ID:", spreadsheetId);
+  try {
+    const ss = SpreadsheetApp.openById(spreadsheetId || SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(SHEET_NAME);
+    if (!sheet) {
+      console.log("Sheet not found");
+      return [];
+    }
 
-  const data = sheet.getDataRange().getValues();
-  const headers = data.shift();
-  
-  return data.map(row => {
-    return {
-      id: row[0].toString(),
-      date: row[1],
-      fromCode: row[2],
-      toCode: row[3],
-      fromAmount: row[4],
-      toAmount: row[5],
-      marketRate: row[6],
-      diffPercent: row[7],
-      note: row[8]
-    };
-  }).reverse(); // Latest first
+    const data = sheet.getDataRange().getValues();
+    if (data.length <= 1) return []; // Only headers or empty
+
+    const headers = data.shift();
+    console.log("Found rows:", data.length);
+    
+    return data.map(row => {
+      return {
+        id: row[0] ? row[0].toString() : "",
+        date: row[1] || "",
+        fromCode: row[2] || "",
+        toCode: row[3] || "",
+        fromAmount: Number(row[4]) || 0,
+        toAmount: Number(row[5]) || 0,
+        marketRate: Number(row[6]) || 0,
+        diffPercent: Number(row[7]) || 0,
+        note: row[8] || ""
+      };
+    }).reverse();
+  } catch (e) {
+    console.error("Error in getTransactions:", e.message);
+    return [];
+  }
 }
 
 /**
