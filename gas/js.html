@@ -207,6 +207,12 @@
         const [searchTerm, setSearchTerm] = useState('');
         const [showOptions, setShowOptions] = useState(false);
 
+        // Comparison Tool State (Moved to top to prevent NaN in useMemo calculation)
+        const [offerFrom, setOfferFrom] = useState('TWD');
+        const [offerTo, setOfferTo] = useState('VND');
+        const [offerAmountFrom, setOfferAmountFrom] = useState(1000);
+        const [offerAmountTo, setOfferAmountTo] = useState(780000);
+
         useEffect(() => {
             if (spreadsheetId) {
                 updateRates();
@@ -339,8 +345,8 @@
         }, [searchTerm]);
 
         const currentMarketRate = (rates[offerTo] || 1) / (rates[offerFrom] || 1);
-        const currentFriendRate = offerAmountTo / offerAmountFrom;
-        const currentDiffPercent = ((currentFriendRate - currentMarketRate) / currentMarketRate) * 100;
+        const currentFriendRate = (offerAmountFrom === 0) ? 0 : (offerAmountTo / offerAmountFrom);
+        const currentDiffPercent = currentMarketRate === 0 ? 0 : (((currentFriendRate - currentMarketRate) / currentMarketRate) * 100);
         const isBetterForMe = currentDiffPercent > 0;
 
         // Header Date Logic
@@ -350,12 +356,6 @@
             const formatted = now.toLocaleDateString('en-GB', options).replace(/ /g, '');
             return formatted + " Powered by Cody";
         }, []);
-
-        // Comparison Tool Local State
-        const [offerFrom, setOfferFrom] = useState('TWD');
-        const [offerTo, setOfferTo] = useState('VND');
-        const [offerAmountFrom, setOfferAmountFrom] = useState(1000);
-        const [offerAmountTo, setOfferAmountTo] = useState(780000);
 
         if (!spreadsheetId) {
             return <Onboarding onComplete={handleOnboardingComplete} />;
