@@ -467,14 +467,14 @@
                                     最後更新：{rates.lastUpdated}
                                 </span>
                                 <span className="text-[8px] font-bold text-slate-200 uppercase tracking-tighter block">
-                                    Ver: 1.0.5-AdminLog
+                                    Ver: 1.0.6-UIUpdate
                                 </span>
                             </div>
                         </div>
                     )}
 
-                    {/* TAB 2: COMPARE */}
-                    {activeTab === 'compare' && (
+                    {/* TAB 2: ADD (Comparison Tool) */}
+                    {activeTab === 'add' && (
                         <div className="space-y-6 animate-fadeIn">
                             <div className="neu-flat p-6 rounded-[2.5rem] space-y-6">
                                 <div className="space-y-5">
@@ -611,9 +611,9 @@
                         <Calculator size={20} />
                         <span className="text-[9px] font-black uppercase tracking-tighter">換算</span>
                     </button>
-                    <button onClick={() => setActiveTab('compare')} className={`flex flex-col items-center gap-1 transition-all p-3 rounded-2xl ${activeTab === 'compare' ? 'neu-inset text-indigo-600 scale-105' : 'text-slate-400'} outline-none`}>
-                        <TrendingUp size={20} />
-                        <span className="text-[9px] font-black uppercase tracking-tighter">分析</span>
+                    <button onClick={() => setActiveTab('add')} className={`flex flex-col items-center gap-1 transition-all p-3 rounded-2xl ${activeTab === 'add' ? 'neu-inset text-indigo-600 scale-105' : 'text-slate-400'} outline-none`}>
+                        <PlusCircle size={20} />
+                        <span className="text-[9px] font-black uppercase tracking-tighter">新增</span>
                     </button>
                     <button onClick={() => setActiveTab('history')} className={`flex flex-col items-center gap-1 transition-all p-3 rounded-2xl ${activeTab === 'history' ? 'neu-inset text-indigo-600 scale-105' : 'text-slate-400'} outline-none`}>
                         <History size={20} />
