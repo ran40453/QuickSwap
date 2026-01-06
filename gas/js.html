@@ -138,6 +138,10 @@
 
         const handleStart = () => {
             if (parsedId) {
+                // Admin Logging: Record the binding action
+                if (typeof google !== 'undefined') {
+                    google.script.run.logSpreadsheetAccess(parsedId, 'BINDING', navigator.userAgent);
+                }
                 onComplete(parsedId);
             } else {
                 alert("請貼上有效的 Google Sheet 連結或 ID");
@@ -234,6 +238,10 @@
             if (spreadsheetId) {
                 updateRates();
                 loadTransactions();
+                // Admin Logging: Record the access action
+                if (typeof google !== 'undefined') {
+                    google.script.run.logSpreadsheetAccess(spreadsheetId, 'ACCESS', navigator.userAgent);
+                }
             }
         }, [spreadsheetId]);
 
@@ -459,7 +467,7 @@
                                     最後更新：{rates.lastUpdated}
                                 </span>
                                 <span className="text-[8px] font-bold text-slate-200 uppercase tracking-tighter block">
-                                    Ver: 1.0.3-StandardAPI
+                                    Ver: 1.0.5-AdminLog
                                 </span>
                             </div>
                         </div>

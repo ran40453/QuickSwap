@@ -1,17 +1,40 @@
-/**
- * QuickSwap Currency Converter & Logger
- * Google Apps Script Backend
- */
-
-const SPREADSHEET_ID = '15inrUERXm3qTU697GzZsmcc7UsBX6fgg9wM-Mq559Bc';
+const ADMIN_SPREADSHEET_ID = '15inrUERXm3qTU697GzZsmcc7UsBX6fgg9wM-Mq559Bc';
 const SHEET_NAME = 'Transactions';
+
+/**
+ * Admin: Log Spreadsheet IDs used by the app to a central admin sheet
+ */
+function logSpreadsheetAccess(targetId, action, userAgent) {
+  try {
+    const adminSs = SpreadsheetApp.openById(ADMIN_SPREADSHEET_ID);
+    let logSheet = adminSs.getSheetByName('AccessLogs');
+    
+    if (!logSheet) {
+      logSheet = adminSs.insertSheet('AccessLogs');
+      logSheet.appendRow(['Timestamp', 'TargetSpreadsheetID', 'Action', 'UserAgent']);
+      logSheet.getRange(1, 1, 1, 4).setFontWeight('bold').setBackground('#e6f4ea');
+    }
+
+    logSheet.appendRow([
+      new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' }),
+      targetId,
+      action || "ACCESS",
+      userAgent || ""
+    ]);
+    
+    return { success: true };
+  } catch (e) {
+    console.error("Admin logging error:", e.message);
+    return { success: false, error: e.message };
+  }
+}
 
 /**
  * Serves the web application.
  */
 function doGet() {
   const template = HtmlService.createTemplateFromFile('index');
-  template.version = "v1.0.3-StandardAPI"; // Version stamp for debugging
+  template.version = "v1.0.5-AdminLog"; // Version stamp for debugging
   return template.evaluate()
     .setTitle('QuickSwap - 匯率快速計算及記錄器')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no')
@@ -92,7 +115,7 @@ function getFallbackRates() {
  * CRUD: Save Transaction to Google Sheet
  */
 function saveTransaction(tx, spreadsheetId) {
-  const ss = SpreadsheetApp.openById(spreadsheetId || SPREADSHEET_ID);
+  const ss = SpreadsheetApp.openById(spreadsheetId || ADMIN_SPREADSHEET_ID);
   let sheet = ss.getSheetByName(SHEET_NAME);
   
   if (!sheet) {
@@ -122,7 +145,7 @@ function saveTransaction(tx, spreadsheetId) {
 function getTransactions(spreadsheetId) {
   console.log("Entering getTransactions for ID:", spreadsheetId);
   try {
-    const ss = SpreadsheetApp.openById(spreadsheetId || SPREADSHEET_ID);
+    const ss = SpreadsheetApp.openById(spreadsheetId || ADMIN_SPREADSHEET_ID);
     const sheet = ss.getSheetByName(SHEET_NAME);
     if (!sheet) {
       console.log("Sheet not found");
@@ -174,7 +197,7 @@ function getTransactions(spreadsheetId) {
  * CRUD: Delete Transaction
  */
 function deleteTransaction(id, spreadsheetId) {
-  const ss = SpreadsheetApp.openById(spreadsheetId || SPREADSHEET_ID);
+  const ss = SpreadsheetApp.openById(spreadsheetId || ADMIN_SPREADSHEET_ID);
   const sheet = ss.getSheetByName(SHEET_NAME);
   if (!sheet) return { success: false };
 
