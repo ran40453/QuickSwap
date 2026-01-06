@@ -102,7 +102,7 @@
                         <input
                             type="number"
                             inputMode="decimal"
-                            value={amount === 0 ? "" : (amount?.toFixed ? amount.toFixed(2).replace(/\.00$/, '') : "0")}
+                            value={amount === 0 ? "" : (code === 'BTC' || code === 'ETH' ? (amount < 1 ? amount.toFixed(6) : amount.toFixed(2)) : amount.toFixed(2).replace(/\.00$/, ''))}
                             onChange={(e) => onAmountChange(parseFloat(e.target.value) || 0)}
                             onClick={(e) => e.stopPropagation()}
                             className="w-full text-lg font-black bg-transparent border-none outline-none focus:ring-0 p-0 text-slate-800"
@@ -110,7 +110,7 @@
                         />
                     </div>
                     <div className="text-[9px] text-slate-400 font-medium italic truncate">
-                        {formatNumber(amount)}
+                        {amount < 0.001 ? amount.toFixed(8) : formatNumber(amount)}
                     </div>
                 </div>
             </div>
@@ -258,7 +258,8 @@
 
         const handleAmountChange = (code, value) => {
             setActiveCurrency(code);
-            const rate = rates[code] || (code === 'USD' ? 1 : 32.5);
+            const rawRate = rates[code];
+            const rate = (rawRate && typeof rawRate === 'number') ? rawRate : (code === 'USD' ? 1 : 32.5);
             setBaseAmount(value / rate);
         };
 
@@ -356,6 +357,13 @@
         const currentDiffPercent = currentMarketRate === 0 ? 0 : (((currentFriendRate - currentMarketRate) / currentMarketRate) * 100);
         const isBetterForMe = currentDiffPercent > 0;
 
+        const formatBetterRate = (val) => {
+            if (!val) return "0.00";
+            if (val < 0.001) return val.toFixed(8);
+            if (val < 1) return val.toFixed(4);
+            return val.toFixed(2);
+        };
+
         // Header Date Logic
         const todayStr = useMemo(() => {
             const now = new Date();
@@ -450,7 +458,7 @@
                                             <div className="flex-1 neu-inset rounded-2xl px-4 py-3">
                                                 <input type="number" value={offerAmountFrom} onChange={(e) => setOfferAmountFrom(parseFloat(e.target.value) || 0)} className="w-full bg-transparent border-none text-lg font-black focus:ring-0 outline-none" />
                                                 <div className="text-[9px] font-bold text-slate-400 uppercase mt-0.5">
-                                                    友情報價 1 : {currentFriendRate.toFixed(2)}
+                                                    友情報價 1 : {formatBetterRate(currentFriendRate)}
                                                 </div>
                                             </div>
                                         </div>
@@ -471,7 +479,7 @@
                                             <div className="flex-1 neu-inset rounded-2xl px-4 py-3">
                                                 <input type="number" value={offerAmountTo} onChange={(e) => setOfferAmountTo(parseFloat(e.target.value) || 0)} className="w-full bg-transparent border-none text-lg font-black focus:ring-0 outline-none" />
                                                 <div className="text-[9px] font-bold text-slate-400 uppercase mt-0.5">
-                                                    市場匯率 1 : {currentMarketRate.toFixed(2)}
+                                                    市場匯率 1 : {formatBetterRate(currentMarketRate)}
                                                 </div>
                                             </div>
                                         </div>

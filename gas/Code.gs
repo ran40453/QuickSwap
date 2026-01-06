@@ -28,85 +28,52 @@ function include(filename) {
  * Fetches latest exchange rates using Gemini API with Grounding (Google Search).
  */
 function fetchLiveRates() {
-  const apiKey = PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY');
-  if (!apiKey) {
-    return {
-      error: 'GEMINI_API_KEY not found.',
-      rates: getFallbackRates(),
-      insight: { summary: '未設定 API 金鑰。', sources: [] }
-    };
-  }
-
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`;
+  const rates = getFallbackRates();
   
-  const prompt = `
-    Find the DEFINITIVE REAL-TIME exchange rates for 1 USD.
-    Use authoritative financial sources like Google Finance, Yahoo Finance, Investing.com, or TradingView.
-    Provide rates for: TWD, HKD, CNY, JPY, KRW, VND, SGD, THB, MYR, PHP, IDR, EUR, GBP, AUD, CAD, CHF, BTC, ETH.
-    
-    Return ONLY a VALID JSON object:
-    {
-      "rates": { "USD": 1, "TWD": number, "BTC": number, ... },
-      "summary": "Short 1-sentence current market summary in Traditional Chinese"
-    }
-  `;
-
-  const payload = {
-    contents: [{ parts: [{ text: prompt }] }],
-    tools: [{ google_search: {} }],
-    generationConfig: { 
-      response_mime_type: "application/json",
-      temperature: 0
-    }
-  };
-
   try {
-    const options = {
-      method: 'post',
-      contentType: 'application/json',
-      payload: JSON.stringify(payload),
-      muteHttpExceptions: true
-    };
-    const response = UrlFetchApp.fetch(url, options);
-    const result = JSON.parse(response.getContentText());
+    // 1. Fetch Fiat Rates (USD base) from Exchangerate-API (Fast & Accurate)
+    const fiatUrl = 'https://open.er-api.com/v6/latest/USD';
+    const fiatResponse = UrlFetchApp.fetch(fiatUrl);
+    const fiatData = JSON.parse(fiatResponse.getContentText());
     
-    if (result.error) throw new Error(result.error.message);
+    if (fiatData && fiatData.rates) {
+      Object.keys(fiatData.rates).forEach(code => {
+        rates[code] = fiatData.rates[code];
+      });
+    }
 
-    const textResponse = result.candidates[0].content.parts[0].text;
-    const data = JSON.parse(textResponse);
+    // 2. Fetch Crypto Rates (BTC, ETH) from CoinGecko
+    const cryptoUrl = 'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd';
+    const cryptoResponse = UrlFetchApp.fetch(cryptoUrl);
+    const cryptoData = JSON.parse(cryptoResponse.getContentText());
     
-    const finalRates = {
-      ...getFallbackRates(),
-      ...data.rates,
-      lastUpdated: new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })
-    };
-
+    // Convert to "1 USD = X BTC" format to stay consistent with fiat rates
+    if (cryptoData.bitcoin) rates['BTC'] = 1 / cryptoData.bitcoin.usd;
+    if (cryptoData.ethereum) rates['ETH'] = 1 / cryptoData.ethereum.usd;
+    
+    rates.lastUpdated = new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });
+    
     return {
-      rates: finalRates,
-      insight: {
-        summary: data.summary || "目前匯率保持穩定。",
-        sources: []
-      }
+      rates: rates,
+      insight: { summary: "數據已從權威金融接口即時更新。", sources: [] }
     };
   } catch (e) {
-    console.error('Gemini API Error:', e);
+    console.error('API Fetch Error:', e);
     return {
       rates: {
         ...getFallbackRates(),
-        lastUpdated: "備用數據 (" + new Date().toLocaleTimeString('zh-TW') + ")"
+        lastUpdated: "連線異常，顯示備用數據 (" + new Date().toLocaleTimeString('zh-TW') + ")"
       },
-      insight: {
-        summary: "系統暫時無法取得即時數據，目前顯示參考值，請稍後重試。",
-        sources: []
-      }
+      insight: { summary: "目前使用的是離線預設匯率數據。", sources: [] }
     };
   }
 }
 
 function getFallbackRates() {
+  // Default values if API fails (approximate 1 USD = X)
   return {
     USD: 1, TWD: 32.5, CNY: 7.24, VND: 25400, HKD: 7.8, KRW: 1350, JPY: 155, EUR: 0.92, GBP: 0.78,
-    SGD: 1.34, MYR: 4.7, THB: 36.50, AUD: 1.51, CAD: 1.37, CHF: 0.91, BTC: 95000, ETH: 3500
+    SGD: 1.34, MYR: 4.7, THB: 36.50, AUD: 1.51, CAD: 1.37, CHF: 0.91, BTC: 0.0000105, ETH: 0.00028
   };
 }
 
