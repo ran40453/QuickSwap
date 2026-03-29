@@ -42,6 +42,37 @@ function doGet() {
 }
 
 /**
+ * Persistence: Get stored Spreadsheet ID from UserProperties
+ */
+function getStoredSpreadsheetId() {
+  try {
+    const props = PropertiesService.getUserProperties();
+    return props.getProperty('QUICKSWAP_SPREADSHEET_ID') || "";
+  } catch (e) {
+    console.error("Error getting stored ID:", e.message);
+    return "";
+  }
+}
+
+/**
+ * Persistence: Set stored Spreadsheet ID in UserProperties
+ */
+function setStoredSpreadsheetId(id) {
+  try {
+    const props = PropertiesService.getUserProperties();
+    if (id) {
+      props.setProperty('QUICKSWAP_SPREADSHEET_ID', id);
+    } else {
+      props.deleteProperty('QUICKSWAP_SPREADSHEET_ID');
+    }
+    return { success: true };
+  } catch (e) {
+    console.error("Error setting stored ID:", e.message);
+    return { success: false, error: e.message };
+  }
+}
+
+/**
  * Helper to include other HTML files (CSS, JS, etc.)
  */
 function include(filename) {

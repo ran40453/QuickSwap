@@ -141,7 +141,10 @@
     /**
      * Onboarding Screen
      */
-    const Onboarding = ({ onComplete }) => {
+    /**
+     * Onboarding Screen
+     */
+    const Onboarding = ({ onComplete, onCancel }) => {
         const [inputValue, setInputValue] = useState('');
         const [parsedId, setParsedId] = useState('');
 
@@ -171,7 +174,16 @@
 
         return (
             <div className="min-h-screen flex items-center justify-center p-6 animate-fadeIn">
-                <div className="neu-flat w-full max-w-sm rounded-[3rem] p-8 space-y-8 flex flex-col items-center text-center">
+                <div className="neu-flat w-full max-w-sm rounded-[3rem] p-8 space-y-8 flex flex-col items-center text-center relative">
+                    {onCancel && (
+                        <button
+                            onClick={onCancel}
+                            className="absolute top-6 right-6 p-2 neu-flat-sm rounded-full text-slate-400 active:scale-90 transition-all"
+                        >
+                            <X size={16} />
+                        </button>
+                    )}
+
                     <div className="p-5 neu-flat rounded-3xl">
                         <ArrowRightLeft size={40} className="text-indigo-600" />
                     </div>
@@ -242,6 +254,7 @@
 
     const App = () => {
         const [spreadsheetId, setSpreadsheetId] = useState(localStorage.getItem(STORAGE_KEY));
+        const [showOnboarding, setShowOnboarding] = useState(false);
         const [activeTab, setActiveTab] = useState('exchange');
         const [rates, setRates] = useState({
             USD: 1, TWD: 32.5, CNY: 7.24, VND: 25400, HKD: 7.8, KRW: 1350, JPY: 155, EUR: 0.92, GBP: 0.78,
@@ -266,8 +279,33 @@
         const [offerAmountTo, setOfferAmountTo] = useState(780000);
 
         useEffect(() => {
+            // Priority 1: Check server-side UserProperties
+            if (typeof google !== 'undefined') {
+                google.script.run
+                    .withSuccessHandler((id) => {
+                        if (id) {
+                            console.log("Found stored Spreadsheet ID from server:", id);
+                            localStorage.setItem(STORAGE_KEY, id);
+                            setSpreadsheetId(id);
+                        } else {
+                            // Priority 2: Fallback to localStorage
+                            const localId = localStorage.getItem(STORAGE_KEY);
+                            if (localId) {
+                                console.log("Falling back to localStorage ID:", localId);
+                                setSpreadsheetId(localId);
+                                // Sync to server
+                                google.script.run.setStoredSpreadsheetId(localId);
+                            }
+                        }
+                    })
+                    .getStoredSpreadsheetId();
+            }
+
+            updateRates();
+        }, []);
+
+        useEffect(() => {
             if (spreadsheetId) {
-                updateRates();
                 loadTransactions();
                 // Admin Logging: Record the access action
                 if (typeof google !== 'undefined') {
@@ -374,6 +412,10 @@
         const handleOnboardingComplete = (id) => {
             localStorage.setItem(STORAGE_KEY, id);
             setSpreadsheetId(id);
+            setShowOnboarding(false);
+            if (typeof google !== 'undefined') {
+                google.script.run.setStoredSpreadsheetId(id);
+            }
         };
 
         const resetBinding = () => {
@@ -381,6 +423,9 @@
                 localStorage.removeItem(STORAGE_KEY);
                 setSpreadsheetId(null);
                 setShowOptions(false);
+                if (typeof google !== 'undefined') {
+                    google.script.run.setStoredSpreadsheetId("");
+                }
             }
         };
 
@@ -431,8 +476,16 @@
             return formatted + " Powered by Cody";
         }, []);
 
-        if (!spreadsheetId) {
-            return <Onboarding onComplete={handleOnboardingComplete} />;
+        const navigateToTab = (tab) => {
+            if ((tab === 'add' || tab === 'history') && !spreadsheetId) {
+                setShowOnboarding(true);
+                return;
+            }
+            setActiveTab(tab);
+        };
+
+        if (showOnboarding) {
+            return <Onboarding onComplete={handleOnboardingComplete} onCancel={() => setShowOnboarding(false)} />;
         }
 
         return (
@@ -685,15 +738,15 @@
 
                 {/* Navigation TabBar */}
                 <nav className="fixed bottom-6 left-6 right-6 h-20 neu-flat rounded-[2rem] flex justify-around items-center px-4 z-50">
-                    <button onClick={() => setActiveTab('exchange')} className={`flex flex-col items-center gap-1 transition-all p-3 rounded-2xl ${activeTab === 'exchange' ? 'neu-inset text-indigo-600 scale-105' : 'text-slate-400'} outline-none`}>
+                    <button onClick={() => navigateToTab('exchange')} className={`flex flex-col items-center gap-1 transition-all p-3 rounded-2xl ${activeTab === 'exchange' ? 'neu-inset text-indigo-600 scale-105' : 'text-slate-400'} outline-none`}>
                         <Calculator size={20} />
                         <span className="text-[9px] font-black uppercase tracking-tighter">換算</span>
                     </button>
-                    <button onClick={() => setActiveTab('add')} className={`flex flex-col items-center gap-1 transition-all p-3 rounded-2xl ${activeTab === 'add' ? 'neu-inset text-indigo-600 scale-105' : 'text-slate-400'} outline-none`}>
+                    <button onClick={() => navigateToTab('add')} className={`flex flex-col items-center gap-1 transition-all p-3 rounded-2xl ${activeTab === 'add' ? 'neu-inset text-indigo-600 scale-105' : 'text-slate-400'} outline-none`}>
                         <PlusCircle size={20} />
                         <span className="text-[9px] font-black uppercase tracking-tighter">新增</span>
                     </button>
-                    <button onClick={() => setActiveTab('history')} className={`flex flex-col items-center gap-1 transition-all p-3 rounded-2xl ${activeTab === 'history' ? 'neu-inset text-indigo-600 scale-105' : 'text-slate-400'} outline-none`}>
+                    <button onClick={() => navigateToTab('history')} className={`flex flex-col items-center gap-1 transition-all p-3 rounded-2xl ${activeTab === 'history' ? 'neu-inset text-indigo-600 scale-105' : 'text-slate-400'} outline-none`}>
                         <History size={20} />
                         <span className="text-[9px] font-black uppercase tracking-tighter">歷史</span>
                     </button>
